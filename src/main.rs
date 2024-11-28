@@ -4,7 +4,7 @@ use xrf1::telemetry::tracing_setup;
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
-    tracing_setup();
+    let _guard = tracing_setup();
 
     let port = 8080;
     let host = "127.0.0.1";
