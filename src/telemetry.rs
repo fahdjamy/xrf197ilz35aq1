@@ -4,17 +4,23 @@ use tracing_appender::rolling::{RollingFileAppender, Rotation};
 use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
-use tracing_subscriber::{fmt, registry, EnvFilter};
+use tracing_subscriber::{fmt, registry, EnvFilter, Layer};
 
 pub fn tracing_setup() -> WorkerGuard {
-    let filter = EnvFilter::try_from_default_env()
+    // Get the current crate name.
+    let crate_name = env!("CARGO_PKG_NAME");
+
+    let console_filter = EnvFilter::try_from_default_env()
         .unwrap_or_else(|_| tracing_subscriber::EnvFilter::from("info"));
+
+    let file_filter = EnvFilter::from(format!("{crate_name}=info"));
 
     // Create a file appender for logging to a file
     let file_appender = file_log_dest();
     let (non_blocking, guard) = non_blocking(file_appender);
 
-    let file_log_dest = BunyanFormattingLayer::new("xrf1".into(), non_blocking);
+    let file_log_dest =
+        BunyanFormattingLayer::new("xrf1".into(), non_blocking).with_filter(file_filter);
 
     let stdout_log_dest = fmt::layer()
         .pretty()
@@ -22,10 +28,10 @@ pub fn tracing_setup() -> WorkerGuard {
         .with_target(false)
         .with_line_number(false)
         .compact()
-        .with_writer(std::io::stdout);
+        .with_writer(std::io::stdout)
+        .with_filter(console_filter);
 
     registry()
-        .with(filter)
         .with(file_log_dest) // File logging
         .with(JsonStorageLayer) // Only concerned w/ info storage, it doesn't do any formatting or provide any output.
         .with(stdout_log_dest) // Console logging

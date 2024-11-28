@@ -379,7 +379,7 @@ version = "0.5.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "33480d6946193aa8033910124896ca395333cae7e2d1113d1fef6c3272217df2"
 dependencies = [
-    "crossbeam-utils",
+ "crossbeam-utils",
 ]
 
 [[package]]
@@ -527,8 +527,8 @@ version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c1ebd34e35c46e00bb73e81363248d627782724609fe1b6396f553f68fe3862e"
 dependencies = [
-    "libc",
-    "winapi",
+ "libc",
+ "winapi",
 ]
 
 [[package]]
@@ -835,7 +835,7 @@ version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8263075bb86c5a1b1427b5ae862e8889656f126e9f77c484496e8b47cf5c5558"
 dependencies = [
-    "regex-automata 0.1.10",
+ "regex-automata 0.1.10",
 ]
 
 [[package]]
@@ -1042,8 +1042,8 @@ checksum = "b544ef1b4eac5dc2db33ea63606ae9ffcfac26c1416a2806ae0bf5f56b201191"
 dependencies = [
  "aho-corasick",
  "memchr",
-    "regex-automata 0.4.9",
-    "regex-syntax 0.8.5",
+ "regex-automata 0.4.9",
+ "regex-syntax 0.8.5",
 ]
 
 [[package]]
@@ -1052,7 +1052,7 @@ version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6c230d73fb8d8c1b9c0b3135c5142a8acee3a0558fb8db5cf1cb65f8d7862132"
 dependencies = [
-    "regex-syntax 0.6.29",
+ "regex-syntax 0.6.29",
 ]
 
 [[package]]
@@ -1063,7 +1063,7 @@ checksum = "809e8dc61f6de73b46c85f4c96486310fe304c434cfa43669d7b40f711150908"
 dependencies = [
  "aho-corasick",
  "memchr",
-    "regex-syntax 0.8.5",
+ "regex-syntax 0.8.5",
 ]
 
 [[package]]
@@ -1255,7 +1255,7 @@ version = "1.0.69"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b6aaf5339b578ea85b50e080feb250a3e8ae8cfcdff9a461c9ec2904bc923f52"
 dependencies = [
-    "thiserror-impl",
+ "thiserror-impl",
 ]
 
 [[package]]
@@ -1264,9 +1264,9 @@ version = "1.0.69"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4fee6c4efc90059e10f81e6d42c60a18f76588c3d74cb83a0b242a2b6c7504c1"
 dependencies = [
-    "proc-macro2",
-    "quote",
-    "syn",
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -1380,10 +1380,10 @@ version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3566e8ce28cc0a3fe42519fc80e6b4c943cc4c8cef275620eb8dac2d3d4e06cf"
 dependencies = [
-    "crossbeam-channel",
-    "thiserror",
-    "time",
-    "tracing-subscriber",
+ "crossbeam-channel",
+ "thiserror",
+ "time",
+ "tracing-subscriber",
 ]
 
 [[package]]
@@ -1403,16 +1403,16 @@ version = "0.3.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2d637245a0d8774bd48df6482e086c59a8b5348a910c3b0579354045a9d82411"
 dependencies = [
-    "ahash",
-    "gethostname",
-    "log",
-    "serde",
-    "serde_json",
-    "time",
-    "tracing",
-    "tracing-core",
-    "tracing-log 0.1.4",
-    "tracing-subscriber",
+ "ahash",
+ "gethostname",
+ "log",
+ "serde",
+ "serde_json",
+ "time",
+ "tracing",
+ "tracing-core",
+ "tracing-log 0.1.4",
+ "tracing-subscriber",
 ]
 
 [[package]]
@@ -1431,9 +1431,9 @@ version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f751112709b4e791d8ce53e32c4ed2d353565a795ce84da2285393f41557bdf2"
 dependencies = [
-    "log",
-    "once_cell",
-    "tracing-core",
+ "log",
+ "once_cell",
+ "tracing-core",
 ]
 
 [[package]]
@@ -1453,16 +1453,16 @@ version = "0.3.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ad0f048c97dbd9faa9b7df56362b8ebcaa52adb06b498c050d2f4e32f90a7a8b"
 dependencies = [
-    "matchers",
+ "matchers",
  "nu-ansi-term",
-    "once_cell",
-    "regex",
+ "once_cell",
+ "regex",
  "sharded-slab",
  "smallvec",
  "thread_local",
-    "tracing",
+ "tracing",
  "tracing-core",
-    "tracing-log 0.2.0",
+ "tracing-log 0.2.0",
 ]
 
 [[package]]
@@ -1632,8 +1632,8 @@ dependencies = [
  "actix-web",
  "tokio",
  "tracing",
-    "tracing-appender",
-    "tracing-bunyan-formatter",
+ "tracing-appender",
+ "tracing-bunyan-formatter",
  "tracing-subscriber",
 ]
 
