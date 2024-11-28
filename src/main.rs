@@ -1,5 +1,6 @@
 use actix_web::{web, App, HttpResponse, HttpServer};
 use tracing::instrument;
+use xrf1::telemetry::tracing_setup;
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
@@ -23,10 +24,4 @@ async fn get_app_health() -> HttpResponse {
     HttpResponse::Ok()
         .content_type("application/json")
         .body("healthy")
-}
-
-fn tracing_setup() {
-    tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::DEBUG)
-        .init();
 }

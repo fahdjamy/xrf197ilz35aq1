@@ -1,5 +1,5 @@
 [package]
-name = "xrf197ilz35aq1"
+name = "xrf1"
 version = "0.0.0"
 edition = "2021"
 
@@ -7,4 +7,4 @@ edition = "2021"
 actix-web = "4.9.0"
 tokio = { version = "1.0.0", features = ["rt", "rt-multi-thread", "macros"] }
 tracing = "0.1.41"
-tracing-subscriber = "0.3.18"
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
