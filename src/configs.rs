@@ -1,16 +1,26 @@
 use serde::Deserialize;
 use serde_aux::field_attributes::deserialize_number_from_string;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 pub struct App {
     #[serde(deserialize_with = "deserialize_number_from_string")]
     pub port: u16,
+    pub name: String,
     pub host: String,
 }
 
-#[derive(serde::Deserialize)]
+#[derive(Deserialize, Clone)]
+pub struct LogConfig {
+    pub level: String,
+    pub output: String,
+    pub suffix: String,
+    pub prefix: String,
+}
+
+#[derive(serde::Deserialize, Clone)]
 pub struct Config {
     pub app: App,
+    pub log: LogConfig,
 }
 
 pub fn load_config() -> Result<Config, config::ConfigError> {
@@ -29,7 +39,7 @@ pub fn load_config() -> Result<Config, config::ConfigError> {
     // Initialise the configurations
     let config = config::Config::builder()
         // Add base configuration values from a file named `app.yaml`.
-        .add_source(config::File::from(config_path.join("app.yaml")))
+        .add_source(config::File::from(config_path.join("app.yml")))
         // Add configuration values from the environment specific file
         .add_source(config::File::from(config_path.join(env_config_file)))
         // Add configurations set from the exported environment

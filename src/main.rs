@@ -1,18 +1,16 @@
 use actix_web::{web, App, HttpResponse, HttpServer};
 use tracing::instrument;
+use xrf1::configs::load_config;
 use xrf1::telemetry::tracing_setup;
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
-    let _guard = tracing_setup();
+    let config = load_config().expect("Failed to load configurations");
+    let _guard = tracing_setup(&config.app.name, config.log);
 
-    let port = 8080;
-    let host = "127.0.0.1";
-    let address = format!("{}:{}", host, port);
+    let address = format!("{}:{}", &config.app.host, &config.app.port);
 
-    HttpServer::new(|| {
-        App::new().route("/health", web::get().to(get_app_health))
-    })
+    HttpServer::new(|| App::new().route("/health", web::get().to(get_app_health)))
         .bind(address)?
         .run()
         .await

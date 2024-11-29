@@ -1,2 +1,8 @@
-application:
+app:
   name: xrf1
+
+log:
+  level: INFO
+  suffix: log
+  prefix: xrf1
+  output: .logs

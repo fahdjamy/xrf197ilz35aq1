@@ -1,3 +1,6 @@
-application:
+app:
   port: 8010
   host: 127.0.0.1
+
+log:
+  level: DEBUG
