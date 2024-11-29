@@ -1,6 +1,8 @@
 use rand::distr::Alphanumeric;
 use rand::{rng, Rng};
 
+pub const DOMAIN_KEY_SIZE: usize = 45;
+
 pub fn generate_unique_key(length: usize) -> String {
     let unique_key = rng()
         .sample_iter(&Alphanumeric) // generates random chars from the Alphanumeric distribution

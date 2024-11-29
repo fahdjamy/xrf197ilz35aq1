@@ -49,7 +49,7 @@ dependencies = [
  "mime",
  "percent-encoding",
  "pin-project-lite",
-    "rand 0.8.5",
+ "rand 0.8.5",
  "sha1",
  "smallvec",
  "tokio",
@@ -210,7 +210,7 @@ dependencies = [
  "getrandom",
  "once_cell",
  "version_check",
-    "zerocopy 0.7.35",
+ "zerocopy 0.7.35",
 ]
 
 [[package]]
@@ -399,7 +399,9 @@ checksum = "a21f936df1771bf62b77f047b726c4625ff2e8aa607c01ec06e5a05bd8463401"
 dependencies = [
  "android-tzdata",
  "iana-time-zone",
+ "js-sys",
  "num-traits",
+ "wasm-bindgen",
  "windows-targets",
 ]
 
@@ -1256,7 +1258,7 @@ version = "0.2.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "77957b295656769bb8ad2b6a6b09d897d94f05c41b069aede1fcdaa675eaea04"
 dependencies = [
-    "zerocopy 0.7.35",
+ "zerocopy 0.7.35",
 ]
 
 [[package]]
@@ -1284,8 +1286,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "34af8d1a0e25924bc5b7c43c079c942339d8f0a8b57c39049bef581b46327404"
 dependencies = [
  "libc",
-    "rand_chacha 0.3.1",
-    "rand_core 0.6.4",
+ "rand_chacha 0.3.1",
+ "rand_core 0.6.4",
 ]
 
 [[package]]
@@ -1294,9 +1296,9 @@ version = "0.9.0-beta.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "64535f75665ca4111b59c1b2c9eb99358dc57c3775cc3379675c11dca030f81a"
 dependencies = [
-    "rand_chacha 0.9.0-beta.0",
-    "rand_core 0.9.0-beta.0",
-    "zerocopy 0.8.11",
+ "rand_chacha 0.9.0-beta.0",
+ "rand_core 0.9.0-beta.0",
+ "zerocopy 0.8.11",
 ]
 
 [[package]]
@@ -1306,7 +1308,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e6c10a63a0fa32252be49d21e7709d4d4baf8d231c2dbce1eaa8141b9b127d88"
 dependencies = [
  "ppv-lite86",
-    "rand_core 0.6.4",
+ "rand_core 0.6.4",
 ]
 
 [[package]]
@@ -1315,8 +1317,8 @@ version = "0.9.0-beta.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6ae4df114eac4201e5830fbecc6b8f775425e5782ac6741f5ba2c8d5e7861136"
 dependencies = [
-    "ppv-lite86",
-    "rand_core 0.9.0-beta.0",
+ "ppv-lite86",
+ "rand_core 0.9.0-beta.0",
 ]
 
 [[package]]
@@ -1334,8 +1336,8 @@ version = "0.9.0-beta.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "faff9cb0513c709c88c66ba1c44e7dfb0e6343494c57576614524400ee60d7cb"
 dependencies = [
-    "getrandom",
-    "zerocopy 0.8.11",
+ "getrandom",
+ "zerocopy 0.8.11",
 ]
 
 [[package]]
@@ -2124,8 +2126,9 @@ name = "xrf1"
 version = "0.0.0"
 dependencies = [
  "actix-web",
+ "chrono",
  "config",
-    "rand 0.9.0-beta.0",
+ "rand 0.9.0-beta.0",
  "serde",
  "serde-aux",
  "tokio",
@@ -2177,7 +2180,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1b9b4fd18abc82b8136838da5d50bae7bdea537c574d8dc1a34ed098d6c166f0"
 dependencies = [
  "byteorder",
-    "zerocopy-derive 0.7.35",
+ "zerocopy-derive 0.7.35",
 ]
 
 [[package]]
@@ -2186,7 +2189,7 @@ version = "0.8.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cce3b5629d87654b53a49002acc2ce64aa5aa7255f5c718374a37ac7fd98c218"
 dependencies = [
-    "zerocopy-derive 0.8.11",
+ "zerocopy-derive 0.8.11",
 ]
 
 [[package]]
@@ -2206,9 +2209,9 @@ version = "0.8.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "74a82c26c3986af2623ec9eb890ff4aa19c006e30a1133dc9bd1830ec1612e20"
 dependencies = [
-    "proc-macro2",
-    "quote",
-    "syn",
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
