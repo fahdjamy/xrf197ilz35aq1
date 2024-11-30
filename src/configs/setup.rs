@@ -27,7 +27,7 @@ pub struct Config {
 
 pub fn load_config() -> Result<Config, config::ConfigError> {
     let base_path = std::env::current_dir().expect("Could not determine current directory");
-    let config_path = base_path.join("../../config");
+    let config_path = base_path.join("config");
 
     // load app environment. default to dev (local/dev) if no env is specified
     let env: Environment = std::env::var("XRF_ENV")
