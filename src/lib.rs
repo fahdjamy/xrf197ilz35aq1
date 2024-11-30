@@ -1,3 +1,3 @@
 pub mod configs;
-mod core;
+pub mod core;
 pub mod telemetry;

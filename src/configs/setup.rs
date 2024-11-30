@@ -1,3 +1,4 @@
+use crate::configs::database::Database;
 use serde::Deserialize;
 use serde_aux::field_attributes::deserialize_number_from_string;
 
@@ -21,11 +22,12 @@ pub struct LogConfig {
 pub struct Config {
     pub app: App,
     pub log: LogConfig,
+    pub database: Database,
 }
 
 pub fn load_config() -> Result<Config, config::ConfigError> {
     let base_path = std::env::current_dir().expect("Could not determine current directory");
-    let config_path = base_path.join("config");
+    let config_path = base_path.join("../../config");
 
     // load app environment. default to dev (local/dev) if no env is specified
     let env: Environment = std::env::var("XRF_ENV")

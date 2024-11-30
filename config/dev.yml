@@ -4,3 +4,6 @@ app:
 
 log:
   level: DEBUG
+
+database:
+  require_ssl: false
