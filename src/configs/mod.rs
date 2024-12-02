@@ -1,4 +1,4 @@
 mod database;
-mod setup;
+mod load;
 
-pub use setup::{load_config, LogConfig};
+pub use load::{load_config, Application, Configurations, LogConfig};

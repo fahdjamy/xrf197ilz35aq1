@@ -3,7 +3,7 @@ use serde::Deserialize;
 use serde_aux::field_attributes::deserialize_number_from_string;
 
 #[derive(Deserialize, Clone)]
-pub struct App {
+pub struct Application {
     #[serde(deserialize_with = "deserialize_number_from_string")]
     pub port: u16,
     pub name: String,
@@ -19,13 +19,13 @@ pub struct LogConfig {
 }
 
 #[derive(serde::Deserialize, Clone)]
-pub struct Config {
-    pub app: App,
+pub struct Configurations {
     pub log: LogConfig,
+    pub app: Application,
     pub database: Database,
 }
 
-pub fn load_config() -> Result<Config, config::ConfigError> {
+pub fn load_config() -> Result<Configurations, config::ConfigError> {
     let base_path = std::env::current_dir().expect("Could not determine current directory");
     let config_path = base_path.join("config");
 
@@ -53,7 +53,7 @@ pub fn load_config() -> Result<Config, config::ConfigError> {
         .build()?;
 
     // Try converting the configuration values into our Config type
-    config.try_deserialize::<Config>()
+    config.try_deserialize::<Configurations>()
 }
 
 enum Environment {
