@@ -1,6 +1,7 @@
 use crate::core::domain::error::DomainError;
 use crate::core::domain::key::{generate_unique_key, DOMAIN_KEY_SIZE};
 use chrono::{DateTime, Utc};
+use sqlx::PgPool;
 
 pub struct Asset {
     pub id: String,
@@ -45,4 +46,22 @@ impl Asset {
         }
         Ok(())
     }
+}
+
+pub async fn create_new_asset(asset: Asset, pg_pool: PgPool) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        "INSERT
+        INTO asset (name, symbol, description, organization, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        ",
+        asset.name,
+        asset.symbol,
+        asset.description,
+        asset.organization,
+        asset.created_at,
+        asset.updated_at
+    )
+    .execute(&pg_pool)
+    .await?;
+    Ok(())
 }

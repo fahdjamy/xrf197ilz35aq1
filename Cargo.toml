@@ -7,7 +7,7 @@ edition = "2021"
 chrono = "0.4.38"
 rand = "0.9.0-beta.0"
 actix-web = "4.9.0"
-tokio = { version = "1.0.0", features = ["rt", "rt-multi-thread", "macros"] }
+tokio = { version = "1.0.0", features = ["macros", "rt-multi-thread"] }
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 tracing-appender = "0.2.3"
@@ -23,10 +23,15 @@ serde = { version = "1.0.204", features = ["derive"] }
 # serde-aux is used to specify a custom deserialization function for things like string to u16
 serde-aux = "4.5.0"
 
+tonic = "0.12.3"
+prost = "0.13.3"
+prost-types = "0.13.3"
+
 [dependencies.sqlx]
 version = "0.8.2"
 default-features = false
 features = [
+    "runtime-tokio-rustls", # tells sqlx to use the tokio runtime for its futures and rustls as TLS backend
     "macros", # “gives us access to sqlx::query! and sqlx::query_as!”
     "postgres", # unlocks Postgres-specific functionality (e.g.non-standard SQL types)
     "chrono", # “adds support for mapping SQL timestamptz to the DateTime<T> type from the chrono crate”
