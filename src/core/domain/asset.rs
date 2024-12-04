@@ -2,9 +2,6 @@ use crate::core::domain::error::DomainError;
 use crate::core::domain::key::{generate_unique_key, DOMAIN_KEY_SIZE};
 use chrono::{DateTime, Utc};
 
-const MIN_NAME_LENGTH: usize = 3;
-const MAX_NAME_LENGTH: usize = 32;
-
 pub struct Asset {
     pub id: String,
     pub name: String,
@@ -37,11 +34,13 @@ impl Asset {
     }
 
     fn validate_name(name: &str) -> Result<(), DomainError> {
-        if name.is_empty() || name.len() < MIN_NAME_LENGTH || name.len() > MAX_NAME_LENGTH {
-            let error_msg = format!(
-                "name should be between {MIN_NAME_LENGTH} and {MAX_NAME_LENGTH} characters long"
-            )
-            .to_string();
+        const MIN_LENGTH: usize = 3;
+        const MAX_LENGTH: usize = 32;
+
+        if name.is_empty() || name.len() < MIN_LENGTH || name.len() > MAX_LENGTH {
+            let error_msg =
+                format!("name should be between {MIN_LENGTH} and {MAX_LENGTH} characters long")
+                    .to_string();
             return Err(DomainError::InvalidArgument(error_msg));
         }
         Ok(())
