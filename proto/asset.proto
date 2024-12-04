@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package asset_manager.v1;
+package asset;
 
 import "google/protobuf/timestamp.proto";
 
