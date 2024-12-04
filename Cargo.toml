@@ -22,6 +22,7 @@ serde = { version = "1.0.204", features = ["derive"] }
 # and it will fail to pick up integers if using the standard deserialization routine from serde.
 # serde-aux is used to specify a custom deserialization function for things like string to u16
 serde-aux = "4.5.0"
+
 [dependencies.sqlx]
 version = "0.8.2"
 default-features = false
@@ -31,3 +32,6 @@ features = [
     "chrono", # “adds support for mapping SQL timestamptz to the DateTime<T> type from the chrono crate”
     "migrate" # “gives us access to the same functions used under the hood by sqlx-cli to manage migrations”
 ]
+
+[build-dependencies]
+tonic-build = "0.12.3"
