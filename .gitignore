@@ -1,3 +1,7 @@
 /target
 .idea
 .logs
+
+# TODO these directories should be later undone from this file and allow for tracking
+.sqlx
+migrations
