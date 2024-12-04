@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package asset_manager.v1;
+
+import "google/protobuf/timestamp.proto";
+
+message Asset {
+  string id = 1;
+  string name = 2;
+  string symbol = 3;
+  string description = 4;
+  string organization = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
+
+message CreateRequest {
+  string name = 1;
+  string symbol = 2;
+  string description = 3;
+  string organization = 4;
+}
+
+message CreateResponse {
+  Asset asset = 1;
+}
+
+service AssetService {
+  rpc Create(CreateRequest) returns (CreateResponse);
+}
