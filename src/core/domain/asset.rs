@@ -1,7 +1,9 @@
 use crate::core::domain::error::DomainError;
 use crate::core::domain::key::{generate_unique_key, DOMAIN_KEY_SIZE};
+use anyhow::anyhow;
 use chrono::{DateTime, Utc};
 use sqlx::PgPool;
+use tracing::error;
 
 pub struct Asset {
     pub id: String,
@@ -48,10 +50,18 @@ impl Asset {
     }
 }
 
-pub async fn create_new_asset(asset: Asset, pg_pool: PgPool) -> Result<(), sqlx::Error> {
-    sqlx::query!(
-        "INSERT
-        INTO asset (name, symbol, description, organization, created_at, updated_at)
+#[tracing::instrument(level = "debug", skip(pg_pool, asset), name = "Create new asset")]
+pub async fn create_new_asset(asset: &Asset, pg_pool: &PgPool) -> Result<bool, anyhow::Error> {
+    let result = sqlx::query!(
+        "
+        INSERT INTO asset (
+            name,
+            symbol,
+            description,
+            organization,
+            created_at,
+            updated_at
+        )
         VALUES ($1, $2, $3, $4, $5, $6)
         ",
         asset.name,
@@ -61,7 +71,11 @@ pub async fn create_new_asset(asset: Asset, pg_pool: PgPool) -> Result<(), sqlx:
         asset.created_at,
         asset.updated_at
     )
-    .execute(&pg_pool)
-    .await?;
-    Ok(())
+    .execute(pg_pool)
+    .await
+    .map_err(|e| {
+        error!("Error executing SQL query: {:?}", e);
+        anyhow!("something went wrong")
+    })?;
+    Ok(result.rows_affected() == 1)
 }
