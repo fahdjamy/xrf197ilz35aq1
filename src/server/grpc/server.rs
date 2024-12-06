@@ -1,7 +1,9 @@
+use crate::configs::GrpcServerConfig;
 use crate::core::{create_new_asset, Asset, DomainError};
-use crate::server::grpc::server::asset::asset_service_server::AssetService;
+use crate::server::grpc::server::asset::asset_service_server::{AssetService, AssetServiceServer};
 use crate::server::grpc::server::asset::{CreateRequest, CreateResponse};
 use sqlx::PgPool;
+use tonic::transport::Server;
 use tonic::{Request, Response, Status};
 
 pub mod asset {
@@ -11,6 +13,12 @@ pub mod asset {
 #[derive(Debug)]
 pub struct AssetServiceManager {
     pg_pool: PgPool,
+}
+
+impl AssetServiceManager {
+    pub fn new(pg_pool: PgPool) -> Self {
+        AssetServiceManager { pg_pool }
+    }
 }
 
 #[tonic::async_trait]
@@ -31,5 +39,31 @@ impl AssetService for AssetServiceManager {
         }
         let response = CreateResponse { asset_id: asset.id };
         Ok(Response::new(response))
+    }
+}
+
+pub struct GrpcServer {
+    port: String,
+    asset_service: AssetServiceManager,
+}
+
+impl GrpcServer {
+    pub fn new(pg_pool: PgPool, config: GrpcServerConfig) -> Self {
+        let asset_service = AssetServiceManager::new(pg_pool);
+        Self {
+            asset_service,
+            port: config.port,
+        }
+    }
+
+    pub async fn start(self) -> Result<(), Box<dyn std::error::Error>> {
+        let addr = format!("[::1]:{}", self.port).parse()?;
+
+        Server::builder()
+            .add_service(AssetServiceServer::new(self.asset_service))
+            .serve(addr)
+            .await?;
+
+        Ok(())
     }
 }
