@@ -14,3 +14,10 @@ database:
     name: "xrf1assets"
     username: "postgres"
     password: "password"
+
+server:
+  grpc:
+    port: 50051
+  http:
+    port: 8010
+    host: 127.0.0.1

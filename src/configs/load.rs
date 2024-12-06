@@ -1,4 +1,4 @@
-use crate::configs::database::Database;
+use crate::configs::database::DatabaseConfig;
 use serde::Deserialize;
 use serde_aux::field_attributes::deserialize_number_from_string;
 
@@ -18,11 +18,29 @@ pub struct LogConfig {
     pub prefix: String,
 }
 
+#[derive(Deserialize, Clone)]
+pub struct GrpcServerConfig {
+    pub port: String,
+}
+
+#[derive(Deserialize, Clone)]
+pub struct HttpServerConfig {
+    pub port: String,
+    pub address: String,
+}
+
+#[derive(Deserialize, Clone)]
+pub struct ServerConfig {
+    pub grpc: GrpcServerConfig,
+    pub http: HttpServerConfig,
+}
+
 #[derive(serde::Deserialize, Clone)]
 pub struct Configurations {
     pub log: LogConfig,
     pub app: Application,
-    pub database: Database,
+    pub server: ServerConfig,
+    pub database: DatabaseConfig,
 }
 
 pub fn load_config() -> Result<Configurations, config::ConfigError> {

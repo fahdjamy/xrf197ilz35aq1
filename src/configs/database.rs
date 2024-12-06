@@ -4,7 +4,7 @@ use serde_aux::field_attributes::deserialize_number_from_string;
 use sqlx::postgres::{PgConnectOptions, PgSslMode};
 
 #[derive(Clone, Debug, Deserialize)]
-pub struct Database {
+pub struct DatabaseConfig {
     pub postgres: Postgres,
 }
 
