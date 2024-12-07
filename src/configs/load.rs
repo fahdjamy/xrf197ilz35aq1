@@ -4,10 +4,7 @@ use serde_aux::field_attributes::deserialize_number_from_string;
 
 #[derive(Deserialize, Clone)]
 pub struct Application {
-    #[serde(deserialize_with = "deserialize_number_from_string")]
-    pub port: u16,
     pub name: String,
-    pub host: String,
 }
 
 #[derive(Deserialize, Clone)]
@@ -25,8 +22,9 @@ pub struct GrpcServerConfig {
 
 #[derive(Deserialize, Clone)]
 pub struct HttpServerConfig {
-    pub port: String,
-    pub address: String,
+    #[serde(deserialize_with = "deserialize_number_from_string")]
+    pub port: u16,
+    pub host: String,
 }
 
 #[derive(Deserialize, Clone)]
