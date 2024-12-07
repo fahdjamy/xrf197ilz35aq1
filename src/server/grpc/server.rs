@@ -2,9 +2,11 @@ use crate::configs::GrpcServerConfig;
 use crate::core::{create_new_asset, Asset, DomainError};
 use crate::server::grpc::server::asset::asset_service_server::{AssetService, AssetServiceServer};
 use crate::server::grpc::server::asset::{CreateRequest, CreateResponse};
+use anyhow::Context;
 use sqlx::PgPool;
-use tonic::transport::Server;
+use tonic::transport::{Error, Server};
 use tonic::{Request, Response, Status};
+use tracing::info;
 
 pub mod asset {
     tonic::include_proto!("asset_rpc");
@@ -43,27 +45,28 @@ impl AssetService for AssetServiceManager {
 }
 
 pub struct GrpcServer {
-    port: String,
+    addr: core::net::SocketAddr,
     asset_service: AssetServiceManager,
 }
 
 impl GrpcServer {
-    pub fn new(pg_pool: PgPool, config: GrpcServerConfig) -> Self {
+    pub fn new(pg_pool: PgPool, config: GrpcServerConfig) -> Result<Self, anyhow::Error> {
+        let addr = format!("[::]:{}", config.port)
+            .parse()
+            .context("Failed to parse grpc server address")?;
         let asset_service = AssetServiceManager::new(pg_pool);
-        Self {
+
+        Ok(Self {
+            addr,
             asset_service,
-            port: config.port,
-        }
+        })
     }
 
-    pub async fn start(self) -> Result<(), Box<dyn std::error::Error>> {
-        let addr = format!("[::1]:{}", self.port).parse()?;
-
+    pub async fn run_until_stopped(self) -> Result<(), Error> {
+        info!("Starting gRPC server :: listening on {}", &self.addr);
         Server::builder()
             .add_service(AssetServiceServer::new(self.asset_service))
-            .serve(addr)
-            .await?;
-
-        Ok(())
+            .serve(self.addr)
+            .await
     }
 }
