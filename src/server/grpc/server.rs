@@ -27,6 +27,7 @@ impl AssetServiceManager {
 impl AssetService for AssetServiceManager {
     async fn create(&self, request: Request<CreateRequest>) -> Result<Response<CreateResponse>, Status> {
         let req = request.into_inner();
+        info!("creating new asset :: (name={} -> symbol={})", &req.name, &req.symbol);
         let asset = Asset::new(req.name, req.symbol, req.description, req.organization)
             .map_err(|e| match e {
                 DomainError::DatabaseError(err) => Status::internal(err.to_string()),
@@ -63,7 +64,7 @@ impl GrpcServer {
     }
 
     pub async fn run_until_stopped(self) -> Result<(), Error> {
-        info!("Starting gRPC server :: listening on {}", &self.addr);
+        info!("starting gRPC server :: port {}", &self.addr.port());
         Server::builder()
             .add_service(AssetServiceServer::new(self.asset_service))
             .serve(self.addr)

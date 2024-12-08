@@ -14,6 +14,7 @@ async fn main() -> anyhow::Result<()> {
         .expect("Failed to build application");
 
     // start the servers
+    // these tasks are currently running concurrently (read NOTE)
     let api_server_task = tokio::spawn(app.http_server.run_until_stopped());
     let grpc_server_task = tokio::spawn(app.grpc_server.run_until_stopped());
 
@@ -21,6 +22,7 @@ async fn main() -> anyhow::Result<()> {
     // There's a pitfall to be mindful of when using tokio::select! - all selected Futures are
     // polled as a single task. This has consequences, as tokio’s documentation highlights:
 
+    // **NOTE**
     // “By running all async expressions on the current task, the expressions are able to run
     // concurrently but not in parallel. This means all expressions are run on the same thread and
     // if one branch blocks the thread, all other expressions will be unable to continue.
