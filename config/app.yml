@@ -10,8 +10,8 @@ log:
 database:
   postgres:
     port: 5432
+    name: "xrf1asset"
     host: "127.0.0.1"
-    name: "xrf1assets"
     username: "postgres"
     password: "password"
 
