@@ -23,16 +23,18 @@ impl Asset {
         organization: String,
     ) -> Result<Self, DomainError> {
         Self::validate_name(&name)?;
+        Self::validate_symbol(&symbol)?;
+        Self::validate_organization(&organization)?;
         let now = Utc::now();
         let asset_id = generate_unique_key(DOMAIN_KEY_SIZE);
         Ok(Self {
             name,
-            symbol,
             description,
             organization,
             id: asset_id,
             created_at: now,
             updated_at: now,
+            symbol: symbol.to_uppercase(),
         })
     }
 
@@ -48,13 +50,38 @@ impl Asset {
         }
         Ok(())
     }
+
+    fn validate_symbol(symbol: &str) -> Result<(), DomainError> {
+        const MIN_LENGTH: usize = 3;
+        const MAX_LENGTH: usize = 10;
+        if symbol.is_empty() || symbol.len() < MIN_LENGTH || symbol.len() > MAX_LENGTH {
+            let error = format!("symbol should be between {MIN_LENGTH} and {MAX_LENGTH} characters long");
+            return Err(DomainError::InvalidArgument(error));
+        }
+        if symbol.chars().any(|c| c.is_whitespace()) {
+            let error = "symbol should not contain a whitespace".to_string();
+            return Err(DomainError::InvalidArgument(error));
+        }
+        Ok(())
+    }
+
+    fn validate_organization(org: &str) -> Result<(), DomainError> {
+        const MIN_LENGTH: usize = 32;
+        if org.is_empty() || org.len() < MIN_LENGTH {
+            let error = format!("orgId should at least be of length {MIN_LENGTH} characters long");
+            return Err(DomainError::InvalidArgument(error));
+        }
+        Ok(())
+    }
 }
 
 #[tracing::instrument(level = "debug", skip(pg_pool, asset), name = "Create new asset")]
 pub async fn create_new_asset(asset: &Asset, pg_pool: &PgPool) -> Result<bool, anyhow::Error> {
+    tracing::debug!("saving new asset to DB :: id={}", &asset.id);
     let result = sqlx::query!(
         "
         INSERT INTO asset (
+            id,
             name,
             symbol,
             description,
@@ -62,8 +89,9 @@ pub async fn create_new_asset(asset: &Asset, pg_pool: &PgPool) -> Result<bool, a
             created_at,
             updated_at
         )
-        VALUES ($1, $2, $3, $4, $5, $6)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
         ",
+        asset.id,
         asset.name,
         asset.symbol,
         asset.description,
