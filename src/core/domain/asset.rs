@@ -4,6 +4,7 @@ use anyhow::anyhow;
 use chrono::{DateTime, Utc};
 use sqlx::PgPool;
 use tracing::error;
+use uuid::Uuid;
 
 pub struct Asset {
     pub id: String,
@@ -69,6 +70,10 @@ impl Asset {
         const MIN_LENGTH: usize = 32;
         if org.is_empty() || org.len() < MIN_LENGTH {
             let error = format!("orgId should at least be of length {MIN_LENGTH} characters long");
+            return Err(DomainError::InvalidArgument(error));
+        }
+        if Uuid::parse_str(org).is_err() {
+            let error = "orgId should be a valid UUID".to_string();
             return Err(DomainError::InvalidArgument(error));
         }
         Ok(())
