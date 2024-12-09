@@ -21,6 +21,7 @@ message Asset {
   string symbol = 3;
   string description = 4;
   string organization = 5;
+  // client will have to handle the formatting of the timezone basing on the user locale
   google.protobuf.Timestamp created_at = 6;
   google.protobuf.Timestamp updated_at = 7;
 }
