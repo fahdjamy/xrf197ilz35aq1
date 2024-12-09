@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package asset_rpc;
 
+import "google/protobuf/timestamp.proto";
+
 message CreateRequest {
   string name = 1;
   string symbol = 2;
@@ -13,6 +15,25 @@ message CreateResponse {
   string asset_id = 1;
 }
 
+message Asset {
+  string id = 1;
+  string name = 2;
+  string symbol = 3;
+  string description = 4;
+  string organization = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
+
+message GetAssetByIdRequest {
+  string asset_id = 1;
+}
+
+message GetAssetByIdResponse {
+  Asset asset = 1;
+}
+
 service AssetService {
   rpc Create(CreateRequest) returns (CreateResponse);
+  rpc GetAssetById(GetAssetByIdRequest) returns (GetAssetByIdResponse);
 }
