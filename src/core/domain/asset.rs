@@ -1,5 +1,6 @@
 use crate::core::domain::error::DomainError;
 use crate::core::domain::key::{generate_unique_key, DOMAIN_KEY_SIZE};
+use crate::core::domain::DatabaseError;
 use anyhow::anyhow;
 use chrono::{DateTime, Utc};
 use sqlx::PgPool;
@@ -111,4 +112,21 @@ pub async fn create_new_asset(asset: &Asset, pg_pool: &PgPool) -> Result<bool, a
         anyhow!("something went wrong")
     })?;
     Ok(result.rows_affected() == 1)
+}
+
+#[tracing::instrument(level = "debug", skip(pg_pool))]
+pub async fn find_asset_by_id(asset_id: &str, pg_pool: &PgPool) -> Result<Asset, DatabaseError> {
+    tracing::debug!("fetching asset :: id={}", asset_id);
+    let result = sqlx::query_as!(
+        Asset,
+        r#"
+        SELECT
+            id, name, symbol, description, organization, created_at, updated_at
+        FROM asset
+        WHERE id = $1"#,
+        asset_id
+    ).
+        fetch_one(pg_pool)
+        .await?;
+    Ok(result)
 }

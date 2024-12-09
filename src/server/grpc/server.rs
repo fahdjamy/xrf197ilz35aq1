@@ -1,8 +1,9 @@
 use crate::configs::GrpcServerConfig;
-use crate::core::{create_new_asset, Asset, DomainError};
+use crate::core::{create_new_asset, find_asset_by_id, Asset, DatabaseError, DomainError};
 use crate::server::grpc::server::asset::asset_service_server::{AssetService, AssetServiceServer};
-use crate::server::grpc::server::asset::{CreateRequest, CreateResponse};
+use crate::server::grpc::server::asset::{Asset as GrpcAsset, CreateRequest, CreateResponse, GetAssetByIdRequest, GetAssetByIdResponse};
 use anyhow::Context;
+use prost_types::Timestamp;
 use sqlx::PgPool;
 use tonic::transport::{Error, Server};
 use tonic::{Request, Response, Status};
@@ -10,6 +11,26 @@ use tracing::info;
 
 pub mod asset {
     tonic::include_proto!("asset_rpc");
+}
+
+impl From<Asset> for GrpcAsset {
+    fn from(asset: Asset) -> Self {
+        GrpcAsset {
+            id: asset.id.into(),
+            name: asset.name.into(),
+            symbol: asset.symbol.into(),
+            description: asset.description.into(),
+            organization: asset.organization.into(),
+            created_at: Some(Timestamp {
+                seconds: asset.created_at.timestamp(),
+                nanos: asset.created_at.timestamp_subsec_nanos() as i32,
+            }),
+            updated_at: Some(Timestamp {
+                seconds: asset.updated_at.timestamp(),
+                nanos: asset.updated_at.timestamp_subsec_nanos() as i32,
+            }),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -41,6 +62,23 @@ impl AssetService for AssetServiceManager {
             return Err(Status::internal(err.to_string()));
         }
         let response = CreateResponse { asset_id: asset.id };
+        Ok(Response::new(response))
+    }
+
+    async fn get_asset_by_id(&self, request: Request<GetAssetByIdRequest>) -> Result<Response<GetAssetByIdResponse>, Status> {
+        let req = request.into_inner();
+        info!("get asset by id :: id={}", &req.asset_id);
+        let asset_id = req.asset_id;
+        let asset = find_asset_by_id(&asset_id, &self.pg_pool)
+            .await
+            .map_err(|e| match e {
+                DatabaseError::NotFound => Status::not_found("asset not found"),
+                _ => Status::unknown("server error"),
+            })?;
+        let response = GetAssetByIdResponse {
+            asset: Some(asset.into()),
+        };
+
         Ok(Response::new(response))
     }
 }
