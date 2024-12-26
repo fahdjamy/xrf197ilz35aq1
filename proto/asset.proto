@@ -34,7 +34,35 @@ message GetAssetByIdResponse {
   Asset asset = 1;
 }
 
+//////
+
+message GetPaginatedAssetsRequest {
+  int32 start = 1;
+  int32 limit = 2;
+}
+
+message GetPaginatedAssetsResponse {
+  int32 start = 1;
+  int32 total = 2;
+  repeated Asset assets = 3;
+}
+
+/////
+
+message GetStreamedAssetsRequest {
+  int32 start = 1;
+  int32 limit = 2;
+}
+
+message GetStreamedAssetsResponse {
+  int32 start = 1;
+  int32 total = 2;
+  repeated Asset assets = 3;
+}
+
 service AssetService {
   rpc Create(CreateRequest) returns (CreateResponse);
   rpc GetAssetById(GetAssetByIdRequest) returns (GetAssetByIdResponse);
+  rpc GetPaginatedAssets(GetPaginatedAssetsRequest) returns (GetPaginatedAssetsResponse);
+  rpc GetStreamedAssets(GetStreamedAssetsRequest) returns (stream GetStreamedAssetsResponse);
 }

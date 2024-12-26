@@ -1,10 +1,15 @@
 use crate::configs::GrpcServerConfig;
 use crate::core::{create_new_asset, find_asset_by_id, Asset, DatabaseError, DomainError};
 use crate::server::grpc::server::asset::asset_service_server::{AssetService, AssetServiceServer};
-use crate::server::grpc::server::asset::{Asset as GrpcAsset, CreateRequest, CreateResponse, GetAssetByIdRequest, GetAssetByIdResponse};
+use crate::server::grpc::server::asset::{Asset as GrpcAsset, CreateRequest, CreateResponse,
+                                         GetAssetByIdRequest, GetAssetByIdResponse,
+                                         GetPaginatedAssetsRequest, GetPaginatedAssetsResponse,
+                                         GetStreamedAssetsRequest, GetStreamedAssetsResponse};
 use anyhow::Context;
 use prost_types::Timestamp;
 use sqlx::PgPool;
+use std::pin::Pin;
+use tonic::codegen::tokio_stream::Stream;
 use tonic::transport::{Error, Server};
 use tonic::{Request, Response, Status};
 use tracing::info;
@@ -80,6 +85,18 @@ impl AssetService for AssetServiceManager {
         };
 
         Ok(Response::new(response))
+    }
+
+    async fn get_paginated_assets(&self, _: Request<GetPaginatedAssetsRequest>) -> Result<Response<GetPaginatedAssetsResponse>, Status> {
+        todo!()
+    }
+
+    type GetStreamedAssetsStream = Pin<
+        Box<
+            dyn Stream<Item=Result<GetStreamedAssetsResponse, Status>> + Send + 'static>>;
+
+    async fn get_streamed_assets(&self, _: Request<GetStreamedAssetsRequest>) -> Result<Response<Self::GetStreamedAssetsStream>, Status> {
+        todo!()
     }
 }
 

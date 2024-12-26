@@ -1,2 +1,3 @@
 mod domain;
-pub use domain::{create_new_asset, find_asset_by_id, Asset, DatabaseError, DomainError};
+
+pub use domain::{create_new_asset, find_asset_by_id, get_all_assets, Asset, DatabaseError, DomainError};

@@ -130,3 +130,23 @@ pub async fn find_asset_by_id(asset_id: &str, pg_pool: &PgPool) -> Result<Asset,
         .await?;
     Ok(result)
 }
+
+#[tracing::instrument(level = "debug", skip(pg_pool, limit, start))]
+pub async fn get_all_assets(pg_pool: &PgPool, limit: i64, start: i64) -> Result<Vec<Asset>, DatabaseError> {
+    tracing::debug!("fetching all assets :: start={} :: limit={}", &start, &limit);
+    let result = sqlx::query_as!(
+        Asset,
+        r#"
+        SELECT
+            id, name, symbol, description, organization, created_at, updated_at
+        FROM asset
+        ORDER BY name ASC
+        LIMIT $1 OFFSET $2
+        "#,
+        limit,
+        start
+    )
+        .fetch_all(pg_pool)
+        .await?;
+    Ok(result)
+}
