@@ -1,5 +1,5 @@
 use crate::configs::GrpcServerConfig;
-use crate::core::{create_new_asset, find_asset_by_id, Asset, DatabaseError, DomainError};
+use crate::core::{create_new_asset, find_asset_by_id, get_all_assets, Asset, DatabaseError, DomainError};
 use crate::server::grpc::server::asset::asset_service_server::{AssetService, AssetServiceServer};
 use crate::server::grpc::server::asset::{Asset as GrpcAsset, CreateRequest, CreateResponse,
                                          GetAssetByIdRequest, GetAssetByIdResponse,
@@ -87,8 +87,36 @@ impl AssetService for AssetServiceManager {
         Ok(Response::new(response))
     }
 
-    async fn get_paginated_assets(&self, _: Request<GetPaginatedAssetsRequest>) -> Result<Response<GetPaginatedAssetsResponse>, Status> {
-        todo!()
+    async fn get_paginated_assets(&self, request: Request<GetPaginatedAssetsRequest>) -> Result<Response<GetPaginatedAssetsResponse>, Status> {
+        let req = request.into_inner();
+        if req.start < 0 || req.limit < 0 || (req.start == 0 && req.limit == 0) {
+            return Err(Status::invalid_argument("start and limit must be positive"));
+        }
+        if req.limit > 100 {
+            return Err(Status::invalid_argument("limit must be less than 3000"));
+        }
+        if req.start > req.limit {
+            return Err(Status::invalid_argument("start must be less than limit"));
+        }
+        let start = req.start as i16;
+        let limit = req.limit as i16;
+
+        info!("fetching paginated assets :: start={} limit={}", &start, &limit);
+        let assets = get_all_assets(&self.pg_pool, start, limit).await.map_err(|e| {
+            match e {
+                DatabaseError::NotFound => Status::not_found("No assets found"),
+                _ => Status::unknown("server error"),
+            }
+        })?;
+
+        let response = GetPaginatedAssetsResponse {
+            start: req.start,
+            total: assets.len() as i32,
+            assets: assets.into_iter()
+                .map(|a| a.into())
+                .collect(),
+        };
+        Ok(Response::new(response))
     }
 
     type GetStreamedAssetsStream = Pin<
