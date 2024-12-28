@@ -26,6 +26,7 @@ impl Display for DomainError {
     }
 }
 
+#[derive(Debug)]
 pub enum DatabaseError {
     NotFound,
     UniqueViolation,

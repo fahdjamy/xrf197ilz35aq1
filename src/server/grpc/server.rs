@@ -12,7 +12,7 @@ use std::pin::Pin;
 use tonic::codegen::tokio_stream::Stream;
 use tonic::transport::{Error, Server};
 use tonic::{Request, Response, Status};
-use tracing::info;
+use tracing::{info, log};
 
 pub mod asset {
     tonic::include_proto!("asset_rpc");
@@ -92,8 +92,8 @@ impl AssetService for AssetServiceManager {
         if req.start < 0 || req.limit < 0 || (req.start == 0 && req.limit == 0) {
             return Err(Status::invalid_argument("start and limit must be positive"));
         }
-        if req.limit > 100 {
-            return Err(Status::invalid_argument("limit must be less than 3000"));
+        if req.limit < 1 || req.limit > 3000 {
+            return Err(Status::invalid_argument("limit must be between 1 and 3000"));
         }
         if req.start > req.limit {
             return Err(Status::invalid_argument("start must be less than limit"));
@@ -105,7 +105,10 @@ impl AssetService for AssetServiceManager {
         let assets = get_all_assets(&self.pg_pool, start, limit).await.map_err(|e| {
             match e {
                 DatabaseError::NotFound => Status::not_found("No assets found"),
-                _ => Status::unknown("server error"),
+                e => {
+                    log::error!("Error fetching assets: {:?}", e);
+                    return Status::unknown("server error");
+                }
             }
         })?;
 
