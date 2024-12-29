@@ -18,6 +18,8 @@ pub mod asset {
     tonic::include_proto!("asset_rpc");
 }
 
+const MAX_LIMIT: i16 = 100;
+
 impl From<Asset> for GrpcAsset {
     fn from(asset: Asset) -> Self {
         GrpcAsset {
@@ -46,6 +48,18 @@ pub struct AssetServiceManager {
 impl AssetServiceManager {
     pub fn new(pg_pool: PgPool) -> Self {
         AssetServiceManager { pg_pool }
+    }
+
+    async fn fetch_assets(&self, start: i16, limit: i16) -> Result<Vec<Asset>, Status> {
+        get_all_assets(&self.pg_pool, start, limit).await.map_err(|e| {
+            match e {
+                DatabaseError::NotFound => Status::not_found("No assets found"),
+                e => {
+                    log::error!("Error fetching assets: {:?}", e);
+                    return Status::unknown("server error");
+                }
+            }
+        })
     }
 }
 
@@ -102,15 +116,7 @@ impl AssetService for AssetServiceManager {
         let limit = req.limit as i16;
 
         info!("fetching paginated assets :: start={} limit={}", &start, &limit);
-        let assets = get_all_assets(&self.pg_pool, start, limit).await.map_err(|e| {
-            match e {
-                DatabaseError::NotFound => Status::not_found("No assets found"),
-                e => {
-                    log::error!("Error fetching assets: {:?}", e);
-                    return Status::unknown("server error");
-                }
-            }
-        })?;
+        let assets = self.fetch_assets(start, limit).await?;
 
         let response = GetPaginatedAssetsResponse {
             start: req.start,
@@ -126,9 +132,68 @@ impl AssetService for AssetServiceManager {
         Box<
             dyn Stream<Item=Result<GetStreamedAssetsResponse, Status>> + Send + 'static>>;
 
-    async fn get_streamed_assets(&self, _: Request<GetStreamedAssetsRequest>) -> Result<Response<Self::GetStreamedAssetsStream>, Status> {
-        todo!()
+    async fn get_streamed_assets(&self, request: Request<GetStreamedAssetsRequest>) -> Result<Response<Self::GetStreamedAssetsStream>, Status> {
+        let req = request.into_inner();
+        validate_request_parameters(req.start, req.limit)?;
+        info!("streaming assets :: start={} limit={}", &req.start, &req.limit);
+
+        let limit = req.limit as i16;
+        let mut start = req.start as i16;
+
+        // 1. Fetch a larger batch of assets initially
+        let batch_size = req.limit as i16 * 10; // Fetch 10 times the requested limit for efficiency
+        let mut batch_assets = self.fetch_assets(start, batch_size).await?;
+
+        let stream = async_stream::stream! {
+            loop {
+                // 2. Take the user's limit from the fetched batch
+                let limited_assets: Vec<_> = batch_assets.drain(..limit as usize).collect();
+                
+                // 3. Yield the response
+                if !limited_assets.is_empty() { // Check if NOT empty
+                    let assets_response: Vec<_> = limited_assets
+                        .into_iter()
+                        .map(|a| {
+                            let asset = a.into();
+                            asset
+                        })
+                        .collect(); 
+                    let total_assets = assets_response.len() as i32; 
+                    yield Ok(GetStreamedAssetsResponse {
+                        start: start as i32,
+                        total: total_assets,
+                        assets: assets_response,
+                    })
+                }
+
+                // 4. If the batch assets is empty, fetch the next batch
+                if batch_assets.is_empty() {
+                    start += batch_size;
+                    batch_assets = self.fetch_assets(start, batch_size).await?;
+
+                    // 5. Break the loop if there are no more assets
+                    if batch_assets.is_empty() {
+                        break;
+                    }
+                }
+            }
+        };
+
+        Ok(Response::new(Box::pin(stream)))
     }
+}
+
+fn validate_request_parameters(start: i32, limit: i32) -> Result<(), Status> {
+    if start < 0 || limit < 0 || (start == 0 && limit == 0) {
+        return Err(Status::invalid_argument("start and limit must be positive"));
+    }
+    if limit < 1 || limit > MAX_LIMIT.into() {
+        return Err(Status::invalid_argument("limit must be between 1 and 100"));
+    }
+    if start > limit {
+        return Err(Status::invalid_argument("start must be less than limit"));
+    }
+    Ok(())
 }
 
 pub struct GrpcServer {

@@ -3440,6 +3440,7 @@ version = "0.0.0"
 dependencies = [
  "actix-web",
  "anyhow",
+ "async-stream",
  "chrono",
  "config",
  "prost",
