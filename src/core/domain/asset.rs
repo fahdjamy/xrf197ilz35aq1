@@ -132,11 +132,10 @@ pub async fn find_asset_by_id(asset_id: &str, pg_pool: &PgPool) -> Result<Asset,
 }
 
 #[tracing::instrument(level = "debug", skip(pg_pool, limit, start))]
-pub async fn get_all_assets(pg_pool: &PgPool, start: i16, limit: i16) -> Result<Vec<Asset>, DatabaseError> {
+pub async fn get_all_assets(pg_pool: &PgPool, start: i64, limit: i16) -> Result<Vec<Asset>, DatabaseError> {
     tracing::debug!("fetching assets from DB :: start={} :: limit={}", &start, &limit);
     // SQLx often requires i64 for LIMIT & OFFSET to ensure compatibility w/ various DB types & potential large values.
     let limit_i64 = limit as i64;
-    let start_i64 = start as i64;
     let result = sqlx::query_as!(
         Asset,
         r#"
@@ -147,7 +146,7 @@ pub async fn get_all_assets(pg_pool: &PgPool, start: i16, limit: i16) -> Result<
         LIMIT $1 OFFSET $2
         "#,
         limit_i64,
-        start_i64
+        start
     )
         .fetch_all(pg_pool)
         .await?;

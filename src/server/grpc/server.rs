@@ -13,7 +13,9 @@ use std::sync::Arc;
 use tonic::codegen::tokio_stream::Stream;
 use tonic::transport::{Error, Server};
 use tonic::{Request, Response, Status};
-use tracing::{info, log};
+use tracing::{debug, error, info, log};
+
+const MAX_DB_LIMIT: usize = 1000;
 
 pub mod asset {
     tonic::include_proto!("asset_rpc");
@@ -63,16 +65,16 @@ impl From<&Asset> for GrpcAsset {
 
 #[derive(Debug)]
 pub struct AssetServiceManager {
-    pg_pool: PgPool,
+    pg_pool: Arc<PgPool>,
 }
 
 impl AssetServiceManager {
     pub fn new(pg_pool: PgPool) -> Self {
-        AssetServiceManager { pg_pool }
+        AssetServiceManager { pg_pool: Arc::new(pg_pool) }
     }
 }
 
-async fn fetch_assets(pg_pool: &PgPool, start: i16, limit: i16) -> Result<Vec<Asset>, Status> {
+async fn fetch_assets(pg_pool: &PgPool, start: i64, limit: i16) -> Result<Vec<Asset>, Status> {
     get_all_assets(pg_pool, start, limit).await.map_err(|e| {
         match e {
             DatabaseError::NotFound => Status::not_found("No assets found"),
@@ -130,14 +132,10 @@ impl AssetService for AssetServiceManager {
         if req.limit < 1 || req.limit > 3000 {
             return Err(Status::invalid_argument("limit must be between 1 and 3000"));
         }
-        if req.start > req.limit {
-            return Err(Status::invalid_argument("start must be less than limit"));
-        }
-        let start = req.start as i16;
         let limit = req.limit as i16;
 
-        info!("fetching paginated assets :: start={} limit={}", &start, &limit);
-        let assets = fetch_assets(&self.pg_pool, start, limit).await?;
+        info!("fetching paginated assets :: start={} limit={}", req.start, &limit);
+        let assets = fetch_assets(&self.pg_pool, req.start as i64, limit).await?;
 
         let response = GetPaginatedAssetsResponse {
             start: req.start,
@@ -153,43 +151,64 @@ impl AssetService for AssetServiceManager {
         Box<
             dyn Stream<Item=Result<GetStreamedAssetsResponse, Status>> + Send + 'static>>;
 
-    async fn get_streamed_assets(&self,
-                                 request: Request<GetStreamedAssetsRequest>) -> Result<Response<Self::GetStreamedAssetsStream>, Status>
-    {
+    async fn get_streamed_assets(&self, request: Request<GetStreamedAssetsRequest>)
+                                 -> Result<Response<Self::GetStreamedAssetsStream>, Status> {
         let req = request.into_inner();
         validate_request_parameters(req.start, req.limit)?;
 
-        let limit = req.limit as usize; // Use usize for consistency and indexing
-        let mut start = req.start as i16;
-        info!("streaming assets :: start={} limit={}", &start, &limit);
+        let limit: usize = req.limit.try_into().map_err(|_| Status::invalid_argument("limit is invalid"))?; // Use usize for consistency and indexing
+        let mut start = req.start.try_into().map_err(|_| Status::invalid_argument("start is invalid"))?;
+        debug!("streaming assets :: startingAt={} limit={}", start, limit);
 
-        let pool = Arc::new(self.pg_pool.clone());
+        let pool = self.pg_pool.clone();
+
+        let max_start = 9999999; // only usage is to avoid infinite loops
         let stream = async_stream::stream! {
             // 1. Fetch a larger batch of assets initially
-            let batch_size = req.limit as i16 * 10; // Fetch 10 times the requested limit for efficiency
-            let mut batch_assets = fetch_assets(&pool, start, batch_size).await?;
+            let batch_size = (limit * 10).min(MAX_DB_LIMIT); // Fetch 10 times the requested limit for efficiency
 
             loop {
+                if start >= max_start {
+                    break;
+                }
+                let mut batch_assets = match fetch_assets(&pool, start, batch_size as i16).await {
+                    Ok(assets) => assets,
+                    Err(e) => {
+                        error!("Failed to fetch assets from database: {:?}", e);
+                        yield Err(e);
+                        break;
+                    }
+                };
+
+                // 2. Break the loop if there are no more assets
+                if batch_assets.is_empty() {
+                    break; // End of data
+                }
+
                 while !batch_assets.is_empty() {
                     // 2. Take the user's limit from the fetched batch
                     let assets_to_send: Vec<_> = batch_assets.drain(..limit.min(batch_assets.len())).collect();
                     let total_assets = assets_to_send.len() as i32;
 
                     // Create a new Vec for the response to avoid consuming assets_to_send
-                    let assets_response = assets_to_send.iter().map(|a| a.into()).collect();
+                    let assets_response: Result<Vec<_>, Status> = assets_to_send.iter()
+                        .map(|a| a.try_into().map_err(|_| Status::internal("Failed to convert asset")))
+                        .collect();
                     // 3. Yield the response
-                    yield Ok(GetStreamedAssetsResponse {
-                        start: start as i32,
-                        total: total_assets,
-                        assets: assets_response,
-                    });
+                    match assets_response {
+                        Ok(assets) => yield Ok(GetStreamedAssetsResponse {
+                            start: start as i32,
+                            total: total_assets,
+                            assets,
+                        }),
+                        Err(e) => {
+                            error!("Failed to serialize assets to be streamed: {:?}", e);
+                            yield Err(e);
+                            break;
+                        }
+                    }
 
-                    start += batch_size; // Update start based on the actual sent assets
-                }
-
-                // 5. Break the loop if there are no more assets
-                if batch_assets.is_empty() {
-                    break
+                    start += total_assets as i64; // Update start based on the actual sent assets
                 }
             }
         };
@@ -205,8 +224,8 @@ fn validate_request_parameters(start: i32, limit: i32) -> Result<(), Status> {
     if limit < 1 || limit > MAX_LIMIT.into() {
         return Err(Status::invalid_argument("limit must be between 1 and 100"));
     }
-    if start > limit {
-        return Err(Status::invalid_argument("start must be less than limit"));
+    if start > i64::MAX as i32 || limit > i16::MAX as i32 {
+        return Err(Status::invalid_argument("start must me less than 9223372036854775807 and limit must be less than 32767"));
     }
     Ok(())
 }
