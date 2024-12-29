@@ -40,6 +40,26 @@ impl From<Asset> for GrpcAsset {
     }
 }
 
+impl From<&Asset> for GrpcAsset {
+    fn from(asset: &Asset) -> Self {
+        GrpcAsset {
+            id: asset.id.to_owned().into(), // Clone the id String
+            name: asset.name.to_owned().into(),
+            symbol: asset.symbol.to_owned().into(),
+            description: asset.description.to_owned().into(),
+            organization: asset.organization.to_owned().into(),
+            created_at: Some(Timestamp {
+                seconds: asset.created_at.timestamp(),
+                nanos: asset.created_at.timestamp_subsec_nanos() as i32,
+            }),
+            updated_at: Some(Timestamp {
+                seconds: asset.updated_at.timestamp(),
+                nanos: asset.updated_at.timestamp_subsec_nanos() as i32,
+            }),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct AssetServiceManager {
     pg_pool: PgPool,
@@ -135,46 +155,37 @@ impl AssetService for AssetServiceManager {
     async fn get_streamed_assets(&self, request: Request<GetStreamedAssetsRequest>) -> Result<Response<Self::GetStreamedAssetsStream>, Status> {
         let req = request.into_inner();
         validate_request_parameters(req.start, req.limit)?;
-        info!("streaming assets :: start={} limit={}", &req.start, &req.limit);
 
-        let limit = req.limit as i16;
+        let limit = req.limit as usize; // Use usize for consistency and indexing
         let mut start = req.start as i16;
-
-        // 1. Fetch a larger batch of assets initially
-        let batch_size = req.limit as i16 * 10; // Fetch 10 times the requested limit for efficiency
-        let mut batch_assets = self.fetch_assets(start, batch_size).await?;
+        info!("streaming assets :: start={} limit={}", &start, &limit);
 
         let stream = async_stream::stream! {
+            // 1. Fetch a larger batch of assets initially
+            let batch_size = req.limit as i16 * 10; // Fetch 10 times the requested limit for efficiency
+            let mut batch_assets = self.fetch_assets(start, batch_size).await?;
+            
             loop {
-                // 2. Take the user's limit from the fetched batch
-                let limited_assets: Vec<_> = batch_assets.drain(..limit as usize).collect();
-                
-                // 3. Yield the response
-                if !limited_assets.is_empty() { // Check if NOT empty
-                    let assets_response: Vec<_> = limited_assets
-                        .into_iter()
-                        .map(|a| {
-                            let asset = a.into();
-                            asset
-                        })
-                        .collect(); 
-                    let total_assets = assets_response.len() as i32; 
+                while !batch_assets.is_empty() {
+                    // 2. Take the user's limit from the fetched batch
+                    let assets_to_send: Vec<_> = batch_assets.drain(..limit.min(batch_assets.len())).collect();
+                    let total_assets = assets_to_send.len() as i32;
+
+                    // Create a new Vec for the response to avoid consuming assets_to_send
+                    let assets_response = assets_to_send.iter().map(|a| a.into()).collect(); 
+                    // 3. Yield the response
                     yield Ok(GetStreamedAssetsResponse {
                         start: start as i32,
                         total: total_assets,
                         assets: assets_response,
-                    })
+                    });
+                    
+                    start += batch_size; // Update start based on the actual sent assets
                 }
-
-                // 4. If the batch assets is empty, fetch the next batch
+                
+                // 5. Break the loop if there are no more assets
                 if batch_assets.is_empty() {
-                    start += batch_size;
-                    batch_assets = self.fetch_assets(start, batch_size).await?;
-
-                    // 5. Break the loop if there are no more assets
-                    if batch_assets.is_empty() {
-                        break;
-                    }
+                    break
                 }
             }
         };
