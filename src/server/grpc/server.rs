@@ -9,6 +9,7 @@ use anyhow::Context;
 use prost_types::Timestamp;
 use sqlx::PgPool;
 use std::pin::Pin;
+use std::sync::Arc;
 use tonic::codegen::tokio_stream::Stream;
 use tonic::transport::{Error, Server};
 use tonic::{Request, Response, Status};
@@ -69,18 +70,18 @@ impl AssetServiceManager {
     pub fn new(pg_pool: PgPool) -> Self {
         AssetServiceManager { pg_pool }
     }
+}
 
-    async fn fetch_assets(&self, start: i16, limit: i16) -> Result<Vec<Asset>, Status> {
-        get_all_assets(&self.pg_pool, start, limit).await.map_err(|e| {
-            match e {
-                DatabaseError::NotFound => Status::not_found("No assets found"),
-                e => {
-                    log::error!("Error fetching assets: {:?}", e);
-                    return Status::unknown("server error");
-                }
+async fn fetch_assets(pg_pool: &PgPool, start: i16, limit: i16) -> Result<Vec<Asset>, Status> {
+    get_all_assets(pg_pool, start, limit).await.map_err(|e| {
+        match e {
+            DatabaseError::NotFound => Status::not_found("No assets found"),
+            e => {
+                log::error!("Error fetching assets: {:?}", e);
+                return Status::unknown("server error");
             }
-        })
-    }
+        }
+    })
 }
 
 #[tonic::async_trait]
@@ -136,7 +137,7 @@ impl AssetService for AssetServiceManager {
         let limit = req.limit as i16;
 
         info!("fetching paginated assets :: start={} limit={}", &start, &limit);
-        let assets = self.fetch_assets(start, limit).await?;
+        let assets = fetch_assets(&self.pg_pool, start, limit).await?;
 
         let response = GetPaginatedAssetsResponse {
             start: req.start,
@@ -152,7 +153,9 @@ impl AssetService for AssetServiceManager {
         Box<
             dyn Stream<Item=Result<GetStreamedAssetsResponse, Status>> + Send + 'static>>;
 
-    async fn get_streamed_assets(&self, request: Request<GetStreamedAssetsRequest>) -> Result<Response<Self::GetStreamedAssetsStream>, Status> {
+    async fn get_streamed_assets(&self,
+                                 request: Request<GetStreamedAssetsRequest>) -> Result<Response<Self::GetStreamedAssetsStream>, Status>
+    {
         let req = request.into_inner();
         validate_request_parameters(req.start, req.limit)?;
 
@@ -160,11 +163,12 @@ impl AssetService for AssetServiceManager {
         let mut start = req.start as i16;
         info!("streaming assets :: start={} limit={}", &start, &limit);
 
+        let pool = Arc::new(self.pg_pool.clone());
         let stream = async_stream::stream! {
             // 1. Fetch a larger batch of assets initially
             let batch_size = req.limit as i16 * 10; // Fetch 10 times the requested limit for efficiency
-            let mut batch_assets = self.fetch_assets(start, batch_size).await?;
-            
+            let mut batch_assets = fetch_assets(&pool, start, batch_size).await?;
+
             loop {
                 while !batch_assets.is_empty() {
                     // 2. Take the user's limit from the fetched batch
@@ -172,17 +176,17 @@ impl AssetService for AssetServiceManager {
                     let total_assets = assets_to_send.len() as i32;
 
                     // Create a new Vec for the response to avoid consuming assets_to_send
-                    let assets_response = assets_to_send.iter().map(|a| a.into()).collect(); 
+                    let assets_response = assets_to_send.iter().map(|a| a.into()).collect();
                     // 3. Yield the response
                     yield Ok(GetStreamedAssetsResponse {
                         start: start as i32,
                         total: total_assets,
                         assets: assets_response,
                     });
-                    
+
                     start += batch_size; // Update start based on the actual sent assets
                 }
-                
+
                 // 5. Break the loop if there are no more assets
                 if batch_assets.is_empty() {
                     break
