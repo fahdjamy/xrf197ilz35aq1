@@ -37,34 +37,52 @@ message GetAssetByIdResponse {
 //////
 
 message GetPaginatedAssetsRequest {
-  int32 start = 1;
-  int32 limit = 2;
-  optional string name = 3;
+  int32 limit = 1;
+  int32 offset = 2;
+  string sort_order = 3;
+  optional string symbol = 4;
 }
 
 message GetPaginatedAssetsResponse {
-  int32 start = 1;
-  int32 total = 2;
+  int32 total = 1;
+  int32 offset = 2;
   repeated Asset assets = 3;
 }
 
 /////
 
 message GetStreamedAssetsRequest {
-  int32 start = 1;
-  int32 limit = 2;
-  optional string name = 3;
+  int32 limit = 1;
+  int32 offset = 2;
+  string sort_order = 3;
+  optional string symbol = 4;
 }
 
 message GetStreamedAssetsResponse {
-  int32 start = 1;
-  int32 total = 2;
+  int32 total = 1;
+  int32 offset = 2;
+  repeated Asset assets = 3;
+}
+
+///// Assets by name
+
+message GetAssetsNameLikeRequest {
+  int32 offset = 1;
+  int32 limit = 2;
+  string name = 3;
+  string sort_order = 4;
+}
+
+message GetAssetsNameLikeResponse {
+  int32 total = 1;
+  int32 offset = 2;
   repeated Asset assets = 3;
 }
 
 service AssetService {
   rpc Create(CreateRequest) returns (CreateResponse);
   rpc GetAssetById(GetAssetByIdRequest) returns (GetAssetByIdResponse);
+  rpc GetAssetsNameLike(GetAssetsNameLikeRequest) returns (GetAssetsNameLikeResponse);
   rpc GetPaginatedAssets(GetPaginatedAssetsRequest) returns (GetPaginatedAssetsResponse);
   rpc GetStreamedAssets(GetStreamedAssetsRequest) returns (stream GetStreamedAssetsResponse);
 }
