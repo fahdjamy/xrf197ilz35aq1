@@ -213,8 +213,8 @@ fn validate_request_parameters(start: i32, limit: i32) -> Result<(), Status> {
     if limit < 1 || limit > MAX_LIMIT.into() {
         return Err(Status::invalid_argument("limit must be between 1 and 100"));
     }
-    if start > i64::MAX as i32 || limit > i16::MAX as i32 {
-        return Err(Status::invalid_argument("start must me less than 9223372036854775807 and limit must be less than 32767"));
+    if limit > i16::MAX as i32 {
+        return Err(Status::invalid_argument("limit must be less than 32767"));
     }
     Ok(())
 }
