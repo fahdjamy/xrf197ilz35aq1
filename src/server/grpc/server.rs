@@ -1,11 +1,16 @@
 use crate::configs::GrpcServerConfig;
 use crate::core::{create_new_asset, find_asset_by_id, find_assets_name_like, get_all_assets, Asset, DatabaseError, DomainError, OrderType};
 use crate::server::grpc::server::asset::asset_service_server::{AssetService, AssetServiceServer};
-use crate::server::grpc::server::asset::{Asset as GrpcAsset, CreateRequest, CreateResponse, GetAssetByIdRequest, GetAssetByIdResponse, GetAssetsNameLikeRequest, GetAssetsNameLikeResponse, GetPaginatedAssetsRequest, GetPaginatedAssetsResponse, GetStreamedAssetsRequest, GetStreamedAssetsResponse};
+use crate::server::grpc::server::asset::{Asset as GrpcAsset, CreateRequest, CreateResponse,
+                                         GetAssetByIdRequest, GetAssetByIdResponse,
+                                         GetAssetsNameLikeRequest, GetAssetsNameLikeResponse,
+                                         GetPaginatedAssetsRequest, GetPaginatedAssetsResponse,
+                                         GetStreamedAssetsRequest, GetStreamedAssetsResponse};
 use anyhow::Context;
 use prost_types::Timestamp;
 use sqlx::PgPool;
 use std::pin::Pin;
+use std::str::FromStr;
 use std::sync::Arc;
 use tonic::codegen::tokio_stream::Stream;
 use tonic::transport::{Error, Server};
@@ -116,6 +121,7 @@ impl AssetService for AssetServiceManager {
             .await
             .map_err(|e| match e {
                 DatabaseError::NotFound => Status::not_found("No assets found"),
+                DatabaseError::InvalidArgument(err) => Status::invalid_argument(err.to_string()),
                 _ => Status::unknown("server error"),
             })?;
         let response = GetAssetsNameLikeResponse {
@@ -137,9 +143,10 @@ impl AssetService for AssetServiceManager {
             return Err(Status::invalid_argument("limit must be between 1 and 3000"));
         }
         let limit = req.limit as i16;
+        let offset = req.offset as i64;
 
-        info!("fetching paginated assets :: start={} limit={}", req.offset, &limit);
-        let assets = fetch_assets(&self.pg_pool, req.offset as i64, limit).await?;
+        info!("fetching paginated assets :: offset={} limit={}", req.offset, &limit);
+        let assets = fetch_assets(&self.pg_pool, offset, limit, &req.sort_order).await?;
 
         let response = GetPaginatedAssetsResponse {
             offset: req.offset,
@@ -160,8 +167,12 @@ impl AssetService for AssetServiceManager {
         let req = request.into_inner();
         validate_request_parameters(req.offset, req.limit)?;
 
-        let limit: usize = req.limit.try_into().map_err(|_| Status::invalid_argument("limit is invalid"))?; // Use usize for consistency and indexing
-        let mut offset = req.offset.try_into().map_err(|_| Status::invalid_argument("start is invalid"))?;
+        let limit: usize = req.limit
+            .try_into()
+            .map_err(|_| Status::invalid_argument("limit is invalid"))?; // Use usize for consistency and indexing
+        let mut offset = req.offset
+            .try_into()
+            .map_err(|_| Status::invalid_argument("offset is invalid"))?;
         debug!("streaming assets :: startingAt={} limit={}", offset, limit);
 
         let pool = self.pg_pool.clone();
@@ -175,7 +186,7 @@ impl AssetService for AssetServiceManager {
                     break;
                 }
                 // 1. Fetch a larger batch of assets
-                let mut batch_assets = match fetch_assets(&pool, offset, batch_size as i16).await {
+                let mut batch_assets = match fetch_assets(&pool, offset, batch_size as i16, &req.sort_order).await {
                     Ok(assets) => assets,
                     Err(e) => {
                         error!("Failed to fetch assets from database: {:?}", e);
@@ -232,16 +243,21 @@ fn validate_request_parameters(start: i32, limit: i32) -> Result<(), Status> {
     Ok(())
 }
 
-async fn fetch_assets(pg_pool: &PgPool, start: i64, limit: i16) -> Result<Vec<Asset>, Status> {
-    get_all_assets(pg_pool, start, limit as i64).await.map_err(|e| {
-        match e {
-            DatabaseError::NotFound => Status::not_found("No assets found"),
-            e => {
-                log::error!("Error fetching assets: {:?}", e);
-                return Status::unknown("server error");
+async fn fetch_assets(pg_pool: &PgPool, start: i64, limit: i16, sort_order: &str) -> Result<Vec<Asset>, Status> {
+    let order_type = OrderType::from_str(sort_order)
+        .map_err(|_| Status::invalid_argument("sort_order is invalid"))?;
+    get_all_assets(pg_pool, start, limit as i64, order_type)
+        .await
+        .map_err(|e| {
+            match e {
+                DatabaseError::NotFound => Status::not_found("No assets found"),
+                DatabaseError::InvalidArgument(err) => Status::invalid_argument(err.to_string()),
+                e => {
+                    log::error!("Error fetching assets: {:?}", e);
+                    return Status::unknown("server error");
+                }
             }
-        }
-    })
+        })
 }
 
 pub struct GrpcServer {

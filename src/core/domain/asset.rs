@@ -176,26 +176,46 @@ pub async fn find_asset_by_id(asset_id: &str, pg_pool: &PgPool) -> Result<Asset,
 }
 
 #[tracing::instrument(level = "debug", skip(pg_pool, limit, offset))]
-pub async fn get_all_assets(pg_pool: &PgPool, offset: i64, limit: i64) -> Result<Vec<Asset>, DatabaseError> {
+pub async fn get_all_assets(pg_pool: &PgPool, offset: i64, limit: i64, order_by: OrderType) -> Result<Vec<Asset>, DatabaseError> {
     if limit < 1 || limit > 100 {
         return Err(DatabaseError::InvalidArgument("limit must be between 1 and 100".to_string()));
     }
     tracing::debug!("fetching assets from DB :: start={} :: limit={}", &offset, &limit);
     // SQLx often requires i64 for LIMIT & OFFSET to ensure compatibility w/ various DB types & potential large values.
-    let result = sqlx::query_as!(
-        Asset,
-        r#"
-        SELECT
-            id, name, symbol, description, organization, created_at, updated_at
-        FROM asset
-        ORDER BY name ASC
-        LIMIT $1 OFFSET $2
-        "#,
-        limit,
-        offset
-    )
-        .fetch_all(pg_pool)
-        .await?;
+    let result = match order_by {
+        OrderType::Asc => {
+            sqlx::query_as!(
+                Asset,
+                r#"
+                SELECT
+                    id, name, symbol, description, organization, created_at, updated_at
+                FROM asset
+                ORDER BY name ASC
+                LIMIT $1 OFFSET $2
+                "#,
+                limit,
+                offset
+            )
+                .fetch_all(pg_pool)
+                .await?
+        }
+        OrderType::Desc => {
+            sqlx::query_as!(
+                Asset,
+                r#"
+                SELECT
+                    id, name, symbol, description, organization, created_at, updated_at
+                FROM asset
+                ORDER BY name DESC
+                LIMIT $1 OFFSET $2
+                "#,
+                limit,
+                offset
+            )
+                .fetch_all(pg_pool)
+                .await?
+        }
+    };
     Ok(result)
 }
 
