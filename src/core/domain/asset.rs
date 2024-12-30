@@ -176,10 +176,12 @@ pub async fn find_asset_by_id(asset_id: &str, pg_pool: &PgPool) -> Result<Asset,
 }
 
 #[tracing::instrument(level = "debug", skip(pg_pool, limit, start))]
-pub async fn get_all_assets(pg_pool: &PgPool, start: i64, limit: i16) -> Result<Vec<Asset>, DatabaseError> {
+pub async fn get_all_assets(pg_pool: &PgPool, start: i64, limit: i64) -> Result<Vec<Asset>, DatabaseError> {
+    if limit < 1 || limit > 100 {
+        return Err(DatabaseError::InvalidArgument("limit must be between 1 and 100".to_string()));
+    }
     tracing::debug!("fetching assets from DB :: start={} :: limit={}", &start, &limit);
     // SQLx often requires i64 for LIMIT & OFFSET to ensure compatibility w/ various DB types & potential large values.
-    let limit_i64 = limit as i64;
     let result = sqlx::query_as!(
         Asset,
         r#"
@@ -189,7 +191,7 @@ pub async fn get_all_assets(pg_pool: &PgPool, start: i64, limit: i16) -> Result<
         ORDER BY name ASC
         LIMIT $1 OFFSET $2
         "#,
-        limit_i64,
+        limit,
         start
     )
         .fetch_all(pg_pool)
@@ -198,35 +200,14 @@ pub async fn get_all_assets(pg_pool: &PgPool, start: i64, limit: i16) -> Result<
 }
 
 #[tracing::instrument(level = "debug", skip(pg_pool, limit))]
-pub async fn get_assets_by_symbol(symbol: &str, limit: i16, order_type: OrderType, pg_pool: &PgPool) -> Result<Vec<Asset>, DatabaseError> {
+pub async fn get_assets_by_symbol(symbol: &str, limit: i16, order_type: OrderType, pg_pool: &PgPool)
+                                  -> Result<Vec<Asset>, DatabaseError> {
     // TO DO: Look into
     // 1. Full-text search: Better for complex searches w/ multiple words, phrases, & linguistic considerations
     // OR
     // 2. Trigram matching: Efficient for finding similar strings, even with typos or partial matches
-    let search_term = format!("%{}%", &symbol.to_uppercase());
+    let search_term = format!("%{}%", sanitize_search_term(symbol).to_uppercase());
     tracing::debug!("fetching assets from DB :: symbol={}", &search_term);
-    let result = sqlx::query_as!(
-        Asset,
-        r#"
-        SELECT
-            id, name, symbol, description, organization, created_at, updated_at
-        FROM asset
-        WHERE symbol LIKE $1
-        ORDER BY symbol ASC
-        LIMIT $2"#,
-        search_term,
-        limit as i64
-    )
-        .fetch_all(pg_pool)
-        .await?;
-    Ok(result)
-}
-
-#[tracing::instrument(level = "debug", skip(pg_pool, limit, order_type))]
-pub async fn get_assets_by_name(name: &str, limit: i16, order_type: OrderType, pg_pool: &PgPool) -> Result<Vec<Asset>, DatabaseError> {
-    let search_term = format!("%{}%", &name);
-    tracing::debug!("fetching assets from DB :: name={}", &search_term);
-
     let result = match order_type {
         OrderType::Asc => {
             sqlx::query_as!(
@@ -240,7 +221,9 @@ pub async fn get_assets_by_name(name: &str, limit: i16, order_type: OrderType, p
                 LIMIT $2"#,
                 search_term,
                 limit as i64
-            ).fetch_all(pg_pool).await?
+            )
+                .fetch_all(pg_pool)
+                .await?
         }
         OrderType::Desc => {
             sqlx::query_as!(
@@ -254,9 +237,54 @@ pub async fn get_assets_by_name(name: &str, limit: i16, order_type: OrderType, p
                 LIMIT $2"#,
                 search_term,
                 limit as i64
+            )
+                .fetch_all(pg_pool)
+                .await?
+        }
+    };
+    Ok(result)
+}
+
+#[tracing::instrument(level = "debug", skip(pg_pool, limit, order_type))]
+pub async fn get_assets_by_name(name: &str, limit: usize, order_type: OrderType, pg_pool: &PgPool)
+                                -> Result<Vec<Asset>, DatabaseError> {
+    let search_term = format!("%{}%", sanitize_search_term(name));
+    tracing::debug!("fetching assets from DB :: name={}", sanitize_search_term(name));
+
+    let result = match order_type {
+        OrderType::Asc => {
+            sqlx::query_as!(
+                Asset,
+                r#"
+                SELECT
+                    id, name, symbol, description, organization, created_at, updated_at
+                FROM asset
+                WHERE name LIKE $1
+                ORDER BY name ASC
+                LIMIT $2"#,
+                search_term,
+                limit as i64
+            ).fetch_all(pg_pool).await?
+        }
+        OrderType::Desc => {
+            sqlx::query_as!(
+                Asset,
+                r#"
+                SELECT
+                    id, name, symbol, description, organization, created_at, updated_at
+                FROM asset
+                WHERE name LIKE $1
+                ORDER BY name DESC
+                LIMIT $2"#,
+                search_term,
+                limit as i64
             ).fetch_all(pg_pool).await?
         }
     };
 
     Ok(result)
+}
+
+fn sanitize_search_term(search_term: &str) -> String {
+    search_term.replace('%', "\\%").replace('_', "\\_") // Escape wildcards
 }

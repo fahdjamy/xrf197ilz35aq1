@@ -40,6 +40,7 @@ pub enum DatabaseError {
     PoolTimedOut,
     PoolClosed,
     WorkerCrashed,
+    InvalidArgument(String),
     Unknown(String), // Catch-all for other errors with the error message
 }
 
