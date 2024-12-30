@@ -4,7 +4,9 @@ use crate::core::domain::DatabaseError;
 use anyhow::anyhow;
 use chrono::{DateTime, Utc};
 use sqlx::PgPool;
-use tracing::error;
+use std::fmt::Display;
+use std::str::FromStr;
+use tracing::{error, warn};
 use uuid::Uuid;
 
 pub struct Asset {
@@ -15,6 +17,48 @@ pub struct Asset {
     pub organization: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum OrderType {
+    Asc,
+    Desc,
+}
+
+impl Default for OrderType {
+    fn default() -> Self {
+        OrderType::Asc
+    }
+}
+
+impl FromStr for OrderType {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "asc" | "ascending" => Ok(OrderType::Asc),
+            "desc" | "descending" => Ok(OrderType::Desc),
+            _ => Err(anyhow!("invalid order type: {}", s)),
+        }
+    }
+}
+
+impl Display for OrderType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            OrderType::Asc => write!(f, "ASC"),
+            OrderType::Desc => write!(f, "DESC"),
+        }
+    }
+}
+
+impl From<String> for OrderType {
+    fn from(s: String) -> Self {
+        OrderType::from_str(&s).unwrap_or_else(|e| {
+            warn!("invalid order type {} defaulting to: {}", e, OrderType::Asc);
+            OrderType::Asc
+        })
+    }
 }
 
 impl Asset {
@@ -150,5 +194,69 @@ pub async fn get_all_assets(pg_pool: &PgPool, start: i64, limit: i16) -> Result<
     )
         .fetch_all(pg_pool)
         .await?;
+    Ok(result)
+}
+
+#[tracing::instrument(level = "debug", skip(pg_pool, limit))]
+pub async fn get_assets_by_symbol(symbol: &str, limit: i16, order_type: OrderType, pg_pool: &PgPool) -> Result<Vec<Asset>, DatabaseError> {
+    // TO DO: Look into
+    // 1. Full-text search: Better for complex searches w/ multiple words, phrases, & linguistic considerations
+    // OR
+    // 2. Trigram matching: Efficient for finding similar strings, even with typos or partial matches
+    let search_term = format!("%{}%", &symbol.to_uppercase());
+    tracing::debug!("fetching assets from DB :: symbol={}", &search_term);
+    let result = sqlx::query_as!(
+        Asset,
+        r#"
+        SELECT
+            id, name, symbol, description, organization, created_at, updated_at
+        FROM asset
+        WHERE symbol LIKE $1
+        ORDER BY symbol ASC
+        LIMIT $2"#,
+        search_term,
+        limit as i64
+    )
+        .fetch_all(pg_pool)
+        .await?;
+    Ok(result)
+}
+
+#[tracing::instrument(level = "debug", skip(pg_pool, limit, order_type))]
+pub async fn get_assets_by_name(name: &str, limit: i16, order_type: OrderType, pg_pool: &PgPool) -> Result<Vec<Asset>, DatabaseError> {
+    let search_term = format!("%{}%", &name);
+    tracing::debug!("fetching assets from DB :: name={}", &search_term);
+
+    let result = match order_type {
+        OrderType::Asc => {
+            sqlx::query_as!(
+                Asset,
+                r#"
+                SELECT
+                    id, name, symbol, description, organization, created_at, updated_at
+                FROM asset
+                WHERE symbol LIKE $1
+                ORDER BY symbol ASC
+                LIMIT $2"#,
+                search_term,
+                limit as i64
+            ).fetch_all(pg_pool).await?
+        }
+        OrderType::Desc => {
+            sqlx::query_as!(
+                Asset,
+                r#"
+                SELECT
+                    id, name, symbol, description, organization, created_at, updated_at
+                FROM asset
+                WHERE symbol LIKE $1
+                ORDER BY symbol DESC
+                LIMIT $2"#,
+                search_term,
+                limit as i64
+            ).fetch_all(pg_pool).await?
+        }
+    };
+
     Ok(result)
 }

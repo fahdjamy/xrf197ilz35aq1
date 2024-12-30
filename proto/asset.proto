@@ -39,6 +39,7 @@ message GetAssetByIdResponse {
 message GetPaginatedAssetsRequest {
   int32 start = 1;
   int32 limit = 2;
+  optional string name = 3;
 }
 
 message GetPaginatedAssetsResponse {
@@ -52,6 +53,7 @@ message GetPaginatedAssetsResponse {
 message GetStreamedAssetsRequest {
   int32 start = 1;
   int32 limit = 2;
+  optional string name = 3;
 }
 
 message GetStreamedAssetsResponse {
