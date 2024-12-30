@@ -74,18 +74,6 @@ impl AssetServiceManager {
     }
 }
 
-async fn fetch_assets(pg_pool: &PgPool, start: i64, limit: i16) -> Result<Vec<Asset>, Status> {
-    get_all_assets(pg_pool, start, limit).await.map_err(|e| {
-        match e {
-            DatabaseError::NotFound => Status::not_found("No assets found"),
-            e => {
-                log::error!("Error fetching assets: {:?}", e);
-                return Status::unknown("server error");
-            }
-        }
-    })
-}
-
 #[tonic::async_trait]
 impl AssetService for AssetServiceManager {
     async fn create(&self, request: Request<CreateRequest>) -> Result<Response<CreateResponse>, Status> {
@@ -164,13 +152,13 @@ impl AssetService for AssetServiceManager {
 
         let max_start = 9999999; // only usage is to avoid infinite loops
         let stream = async_stream::stream! {
-            // 1. Fetch a larger batch of assets initially
             let batch_size = (limit * 10).min(MAX_DB_LIMIT); // Fetch 10 times the requested limit for efficiency
 
             loop {
                 if start >= max_start {
                     break;
                 }
+                // 1. Fetch a larger batch of assets
                 let mut batch_assets = match fetch_assets(&pool, start, batch_size as i16).await {
                     Ok(assets) => assets,
                     Err(e) => {
@@ -217,6 +205,7 @@ impl AssetService for AssetServiceManager {
     }
 }
 
+///// Helper methods
 fn validate_request_parameters(start: i32, limit: i32) -> Result<(), Status> {
     if start < 0 || limit < 0 || (start == 0 && limit == 0) {
         return Err(Status::invalid_argument("start and limit must be positive"));
@@ -228,6 +217,18 @@ fn validate_request_parameters(start: i32, limit: i32) -> Result<(), Status> {
         return Err(Status::invalid_argument("start must me less than 9223372036854775807 and limit must be less than 32767"));
     }
     Ok(())
+}
+
+async fn fetch_assets(pg_pool: &PgPool, start: i64, limit: i16) -> Result<Vec<Asset>, Status> {
+    get_all_assets(pg_pool, start, limit).await.map_err(|e| {
+        match e {
+            DatabaseError::NotFound => Status::not_found("No assets found"),
+            e => {
+                log::error!("Error fetching assets: {:?}", e);
+                return Status::unknown("server error");
+            }
+        }
+    })
 }
 
 pub struct GrpcServer {
