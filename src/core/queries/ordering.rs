@@ -3,7 +3,7 @@ use std::fmt::Display;
 use std::str::FromStr;
 use tracing::warn;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum OrderType {
     Asc,
     Desc,
@@ -42,5 +42,29 @@ impl From<String> for OrderType {
             warn!("invalid order type {} defaulting to: {}", e, OrderType::Asc);
             OrderType::Asc
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_order_type_from_str() {
+        assert_eq!(OrderType::from_str("asc").unwrap(), OrderType::Asc);
+        assert_eq!(OrderType::from_str("ASC").unwrap(), OrderType::Asc);
+        assert_eq!(OrderType::from_str("ASCENDING").unwrap(), OrderType::Asc);
+        assert_eq!(OrderType::from_str("ascending").unwrap(), OrderType::Asc);
+        assert_eq!(OrderType::from_str("desc").unwrap(), OrderType::Desc);
+        assert_eq!(OrderType::from_str("DESC").unwrap(), OrderType::Desc);
+        assert_eq!(OrderType::from_str("descending").unwrap(), OrderType::Desc);
+        assert_eq!(OrderType::from_str("DESCENDING").unwrap(), OrderType::Desc);
+        assert!(OrderType::from_str("invalid").is_err());
+    }
+
+    #[test]
+    fn test_order_type_from_string() {
+        assert_eq!(OrderType::from("asc".to_string()), OrderType::Asc);
+        assert_eq!(OrderType::from("DESC".to_string()), OrderType::Desc);
     }
 }
