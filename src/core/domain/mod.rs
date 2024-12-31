@@ -8,6 +8,5 @@ pub use asset::{create_new_asset,
                 find_assets_symbol_like,
                 get_all_assets,
                 Asset,
-                OrderType,
 };
 pub use error::{DatabaseError, DomainError};
