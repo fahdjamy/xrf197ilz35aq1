@@ -41,6 +41,8 @@ impl From<Asset> for GrpcAsset {
                 seconds: asset.updated_at.timestamp(),
                 nanos: asset.updated_at.timestamp_subsec_nanos() as i32,
             }),
+            listable: asset.listable,
+            tradable: asset.tradable,
         }
     }
 }
@@ -61,6 +63,8 @@ impl From<&Asset> for GrpcAsset {
                 seconds: asset.updated_at.timestamp(),
                 nanos: asset.updated_at.timestamp_subsec_nanos() as i32,
             }),
+            listable: asset.listable,
+            tradable: asset.tradable,
         }
     }
 }
