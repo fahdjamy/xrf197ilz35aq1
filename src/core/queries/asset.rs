@@ -43,7 +43,7 @@ pub async fn find_asset_by_id(asset_id: &str, pg_pool: &PgPool) -> Result<Asset,
         Asset,
         r#"
         SELECT
-            id, name, symbol, description, organization, created_at, updated_at
+            id, name, symbol, description, organization, created_at, updated_at, tradable, listable
         FROM asset
         WHERE id = $1"#,
         asset_id
@@ -66,7 +66,7 @@ pub async fn get_all_assets(pg_pool: &PgPool, offset: i64, limit: i64, order_by:
                 Asset,
                 r#"
                 SELECT
-                    id, name, symbol, description, organization, created_at, updated_at
+                    id, name, symbol, description, organization, created_at, updated_at, tradable, listable
                 FROM asset
                 ORDER BY name ASC
                 LIMIT $1 OFFSET $2
@@ -82,7 +82,7 @@ pub async fn get_all_assets(pg_pool: &PgPool, offset: i64, limit: i64, order_by:
                 Asset,
                 r#"
                 SELECT
-                    id, name, symbol, description, organization, created_at, updated_at
+                    id, name, symbol, description, organization, created_at, updated_at, tradable, listable
                 FROM asset
                 ORDER BY name DESC
                 LIMIT $1 OFFSET $2
@@ -112,7 +112,7 @@ pub async fn find_assets_symbol_like(symbol: &str, limit: i16, offset: i64, orde
                 Asset,
                 r#"
                 SELECT
-                    id, name, symbol, description, organization, created_at, updated_at
+                    id, name, symbol, description, organization, created_at, updated_at, tradable, listable
                 FROM asset
                 WHERE symbol LIKE $1
                 ORDER BY symbol ASC
@@ -130,7 +130,7 @@ pub async fn find_assets_symbol_like(symbol: &str, limit: i16, offset: i64, orde
                 Asset,
                 r#"
                 SELECT
-                    id, name, symbol, description, organization, created_at, updated_at
+                    id, name, symbol, description, organization, created_at, updated_at, tradable, listable
                 FROM asset
                 WHERE symbol LIKE $1
                 ORDER BY symbol DESC
@@ -157,7 +157,7 @@ pub async fn find_assets_name_like(name: &str, offset: i64, limit: usize, order_
                 Asset,
                 r#"
                 SELECT
-                    id, name, symbol, description, organization, created_at, updated_at
+                    id, name, symbol, description, organization, created_at, updated_at, tradable, listable
                 FROM asset
                 WHERE name LIKE $1
                 ORDER BY name ASC
@@ -173,7 +173,7 @@ pub async fn find_assets_name_like(name: &str, offset: i64, limit: usize, order_
                 Asset,
                 r#"
                 SELECT
-                    id, name, symbol, description, organization, created_at, updated_at
+                    id, name, symbol, description, organization, created_at, updated_at, tradable, listable
                 FROM asset
                 WHERE name LIKE $1
                 ORDER BY name DESC

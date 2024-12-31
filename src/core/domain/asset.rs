@@ -8,6 +8,8 @@ pub struct Asset {
     pub id: String,
     pub name: String,
     pub symbol: String,
+    pub tradable: bool,
+    pub listable: bool, // defines if an asset should be listed in a list of assets, may or may not be tradable
     pub description: String,
     pub organization: String,
     pub created_at: DateTime<Utc>,
@@ -31,6 +33,8 @@ impl Asset {
             description,
             organization,
             id: asset_id,
+            listable: true,
+            tradable: false,
             created_at: now,
             updated_at: now,
             symbol: symbol.to_uppercase(),
