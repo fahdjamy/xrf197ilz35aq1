@@ -36,8 +36,8 @@ impl FromStr for OrderType {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "asc" | "ascending" => Ok(OrderType::Asc),
-            "desc" | "descending" => Ok(OrderType::Desc),
+            "asc" | "ascending" | "ASC" | "ASCENDING" => Ok(OrderType::Asc),
+            "desc" | "descending" | "DESC" | "DESCENDING" => Ok(OrderType::Desc),
             _ => Err(anyhow!("invalid order type: {}", s)),
         }
     }
