@@ -1,5 +1,5 @@
 mod domain;
 mod queries;
 
-pub use domain::{Asset, DatabaseError, DomainError};
+pub use domain::*;
 pub use queries::*;

@@ -3,6 +3,7 @@ use crate::core::domain::key::{generate_unique_key, DOMAIN_KEY_SIZE};
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
+#[derive(Debug, Clone)]
 pub struct Asset {
     pub id: String,
     pub name: String,
