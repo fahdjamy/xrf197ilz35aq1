@@ -1,6 +1,7 @@
 use crate::core::domain::error::DomainError;
 use crate::core::domain::key::{generate_unique_key, DOMAIN_KEY_SIZE};
 use chrono::{DateTime, Utc};
+use std::fmt::Display;
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]
@@ -10,6 +11,7 @@ pub struct Asset {
     pub symbol: String,
     pub tradable: bool,
     pub listable: bool, // defines if an asset should be listed in a list of assets, may or may not be tradable
+    pub updated_by: String,
     pub description: String,
     pub organization: String,
     pub created_at: DateTime<Utc>,
@@ -20,6 +22,7 @@ impl Asset {
     pub fn new(
         name: String,
         symbol: String,
+        updated_by: String,
         description: String,
         organization: String,
     ) -> Result<Self, DomainError> {
@@ -30,6 +33,7 @@ impl Asset {
         let asset_id = generate_unique_key(DOMAIN_KEY_SIZE);
         Ok(Self {
             name,
+            updated_by,
             description,
             organization,
             id: asset_id,
@@ -79,5 +83,48 @@ impl Asset {
             return Err(DomainError::InvalidArgument(error));
         }
         Ok(())
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct UpdateAssetRequest {
+    pub updated_by: String,
+    pub name: Option<String>,
+    pub symbol: Option<String>,
+    pub listable: Option<bool>,
+    pub tradable: Option<bool>,
+    pub updated_at: DateTime<Utc>,
+    pub description: Option<String>,
+    pub organization: Option<String>,
+}
+
+impl UpdateAssetRequest {
+    pub fn new(
+        updated_by: String,
+        name: Option<String>,
+        listable: Option<bool>,
+        tradable: Option<bool>,
+        symbol: Option<String>,
+        description: Option<String>,
+        organization: Option<String>,
+    ) -> Self {
+        let now = Utc::now();
+        Self {
+            name,
+            symbol,
+            listable,
+            tradable,
+            updated_by,
+            description,
+            organization,
+            updated_at: now,
+        }
+    }
+}
+
+impl Display for UpdateAssetRequest {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "name:{:?}, symbol:{:?}, listable:{:?}, tradable:{:?}",
+               self.name, self.symbol, self.listable, self.tradable)
     }
 }

@@ -21,11 +21,12 @@ message Asset {
   string symbol = 3;
   bool tradable = 4;
   bool listable = 5;
-  string description = 6;
-  string organization = 7;
+  string updated_by = 6;
+  string description = 7;
+  string organization = 8;
   // client will have to handle the formatting of the timezone basing on the user locale
-  google.protobuf.Timestamp created_at = 8;
-  google.protobuf.Timestamp updated_at = 9;
+  google.protobuf.Timestamp created_at = 9;
+  google.protobuf.Timestamp updated_at = 10;
 }
 
 message GetAssetByIdRequest {
