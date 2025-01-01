@@ -82,8 +82,37 @@ message GetAssetsNameLikeResponse {
   repeated Asset assets = 3;
 }
 
+///// Update Asset
+
+message UpdateAssetRequest {
+  string org_id = 1;
+  string user_fp = 2;
+  string asset_id = 3;
+  optional string name = 4;
+  optional string symbol = 5;
+  optional bool listable = 6;
+  optional bool tradable = 7;
+  optional string description = 8;
+}
+
+message UpdateAssetResponse {
+  bool updated = 1;
+}
+
+///// Delete Asset
+
+message DeleteAssetRequest {
+  string asset_id = 1;
+}
+
+message DeleteAssetResponse {
+  bool updated = 1;
+}
+
 service AssetService {
   rpc Create(CreateRequest) returns (CreateResponse);
+  rpc UpdateAsset(UpdateAssetRequest) returns (UpdateAssetResponse);
+  rpc DeleteAsset(DeleteAssetRequest) returns (DeleteAssetResponse);
   rpc GetAssetById(GetAssetByIdRequest) returns (GetAssetByIdResponse);
   rpc GetAssetsNameLike(GetAssetsNameLikeRequest) returns (GetAssetsNameLikeResponse);
   rpc GetPaginatedAssets(GetPaginatedAssetsRequest) returns (GetPaginatedAssetsResponse);
