@@ -195,10 +195,7 @@ pub async fn find_assets_name_like(name: &str, offset: i64, limit: usize, order_
 pub async fn delete_asset_by_id(asset_id: &str, pg_pool: &PgPool) -> Result<bool, DatabaseError> {
     tracing::debug!("deleting asset :: id = {}", asset_id);
     let result = sqlx::query!(
-        "
-        DELETE FROM asset
-        WHERE id = $1
-        ",
+        "DELETE FROM asset WHERE id = $1",
         asset_id
     )
         .execute(pg_pool)
@@ -208,48 +205,63 @@ pub async fn delete_asset_by_id(asset_id: &str, pg_pool: &PgPool) -> Result<bool
 
 #[tracing::instrument(level = "debug", skip(pg_pool, asset))]
 pub async fn update_asset(asset_id: &str, asset: &UpdateAssetRequest, pg_pool: &PgPool) -> Result<bool, DatabaseError> {
+    // no field is there to be updated, return early
+    if asset.updated_by.is_empty() ||
+        (asset.name.is_none() &&
+            asset.symbol.is_none() &&
+            asset.listable.is_none() &&
+            asset.tradable.is_none() &&
+            asset.description.is_none() &&
+            asset.organization.is_none()) {
+        return Ok(true);
+    }
+    let mut first = true;
+    let str_fields = vec![
+        ("name", &asset.name),
+        ("symbol", &asset.symbol),
+        ("description", &asset.description),
+        ("organization", &asset.organization),
+    ];
     let mut query_builder = QueryBuilder::new("UPDATE asset SET ");
-
-    let mut set_clauses = Vec::new();
-    if let Some(name) = &asset.name {
-        set_clauses.push(format!("name = '{}'", name.replace('\'', "''")));
-    }
-    if let Some(symbol) = &asset.symbol {
-        set_clauses.push(format!("symbol = '{}'", symbol.replace('\'', "''")));
-    }
-    if let Some(description) = &asset.description {
-        set_clauses.push(format!("description = '{}'", description.replace('\'', "''")));
-    }
-    if let Some(listable) = asset.listable {
-        set_clauses.push(format!("listable = {}", listable));
-    }
-    if let Some(tradable) = asset.tradable {
-        set_clauses.push(format!("tradable = {}", tradable));
-    }
-    set_clauses.push(format!("updated_at = '{}'", asset.updated_at));
-    if let Some(organization) = &asset.organization {
-        set_clauses.push(format!("organization = '{}'", organization.replace('\'', "''")));
-    }
-    set_clauses.push(format!("updated_by = '{}'", asset.updated_by.replace('\'', "''")));
-
-    query_builder.push(set_clauses.join(", "));
-    query_builder.push(" WHERE id = ");
-    query_builder.push_bind(asset_id); // Use bind for the ID
-
-    let query = query_builder.build();
-
-    match query.execute(pg_pool).await {
-        Ok(res) => {
-            if res.rows_affected() > 0 {
-                Ok(true)
-            } else {
-                Ok(false)
-            }
+    for (field_name, field_value) in str_fields
+        .iter()
+        .filter(|(_, v)| v.is_some()) {
+        if !first {
+            query_builder.push(", ");
         }
+        query_builder.push(format!("{} = ", field_name));
+        query_builder.push_bind(field_value);
+        first = false;
+    }
+
+    if let Some(listable) = asset.listable {
+        if !first {
+            query_builder.push(", ");
+        }
+        query_builder.push("listable = ").push_bind(listable);
+        first = false;
+    }
+    // this is the last field to be added, remember to add 'first = false' if it's not
+    if let Some(tradable) = asset.tradable {
+        if !first {
+            query_builder.push(", ");
+        }
+        query_builder.push("tradable = ").push_bind(tradable);
+    }
+
+    // SET the necessary fields
+    query_builder.push(", updated_at = ").push_bind(asset.updated_at);
+    query_builder.push(", updated_by = ").push_bind(&asset.updated_by);
+
+    // SET WHERE clause
+    query_builder.push(" WHERE id = ").push_bind(asset_id);
+
+    match query_builder.build().execute(pg_pool).await {
+        Ok(res) => Ok(res.rows_affected() > 0),
         Err(e) => {
             error!("Error executing SQL query: {:?}", e);
             Err(DatabaseError::from(e))
-        },
+        }
     }
 }
 

@@ -31,6 +31,7 @@ impl From<Asset> for GrpcAsset {
             id: asset.id.into(),
             name: asset.name.into(),
             symbol: asset.symbol.into(),
+            updated_by: asset.updated_by,
             description: asset.description.into(),
             organization: asset.organization.into(),
             created_at: Some(Timestamp {
@@ -53,6 +54,7 @@ impl From<&Asset> for GrpcAsset {
             id: asset.id.to_owned().into(), // Clone the id String
             name: asset.name.to_owned().into(),
             symbol: asset.symbol.to_owned().into(),
+            updated_by: asset.updated_by.to_owned(),
             description: asset.description.to_owned().into(),
             organization: asset.organization.to_owned().into(),
             created_at: Some(Timestamp {
@@ -85,7 +87,7 @@ impl AssetService for AssetServiceManager {
     async fn create(&self, request: Request<CreateRequest>) -> Result<Response<CreateResponse>, Status> {
         let req = request.into_inner();
         info!("creating new asset :: (name={} -> symbol={})", &req.name, &req.symbol);
-        let asset = Asset::new(req.name, req.symbol, req.description, req.organization)
+        let asset = Asset::new(req.name, req.symbol, "req.".parse().unwrap(), req.description, req.organization)
             .map_err(|e| match e {
                 DomainError::DatabaseError(err) => Status::internal(err.to_string()),
                 DomainError::NotFoundError(err) => Status::not_found(err.to_string()),
