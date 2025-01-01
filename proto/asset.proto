@@ -102,11 +102,12 @@ message UpdateAssetResponse {
 ///// Delete Asset
 
 message DeleteAssetRequest {
-  string asset_id = 1;
+  string org_id = 1;
+  string asset_id = 2;
 }
 
 message DeleteAssetResponse {
-  bool updated = 1;
+  bool deleted = 1;
 }
 
 service AssetService {

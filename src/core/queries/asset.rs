@@ -56,6 +56,23 @@ pub async fn find_asset_by_id(asset_id: &str, pg_pool: &PgPool) -> Result<Asset,
     Ok(result)
 }
 
+#[tracing::instrument(level = "debug", skip(pg_pool, asset_id, org_id))]
+pub async fn find_asset_by_id_and_org_id(asset_id: &str, org_id: &str, pg_pool: &PgPool) -> Result<Asset, DatabaseError> {
+    let result = sqlx::query_as!(
+        Asset,
+        r#"
+        SELECT
+            id, name, symbol, description, organization, created_at, updated_at, tradable, listable, updated_by
+        FROM asset
+        WHERE id = $1 AND organization = $2"#,
+        asset_id,
+        org_id
+    )
+        .fetch_one(pg_pool)
+        .await?;
+    Ok(result)
+}
+
 #[tracing::instrument(level = "debug", skip(pg_pool, limit, offset))]
 pub async fn get_all_assets(pg_pool: &PgPool, offset: i64, limit: i64, order_by: OrderType) -> Result<Vec<Asset>, DatabaseError> {
     if limit < 1 || limit > 100 {
