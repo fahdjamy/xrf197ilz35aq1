@@ -1,5 +1,6 @@
 use crate::core::{Asset, DatabaseError, OrderType, UpdateAssetRequest};
 use anyhow::anyhow;
+use chrono::Utc;
 use sqlx::{PgPool, QueryBuilder};
 use tracing::error;
 
@@ -205,14 +206,16 @@ pub async fn delete_asset_by_id(asset_id: &str, pg_pool: &PgPool) -> Result<bool
 
 #[tracing::instrument(level = "debug", skip(pg_pool, asset))]
 pub async fn update_asset(asset_id: &str, asset: &UpdateAssetRequest, pg_pool: &PgPool) -> Result<bool, DatabaseError> {
+    if asset.updated_by.is_empty() {
+        return Err(DatabaseError::InvalidArgument("updated_by is required".to_string()));
+    }
     // no field is there to be updated, return early
-    if asset.updated_by.is_empty() ||
-        (asset.name.is_none() &&
-            asset.symbol.is_none() &&
-            asset.listable.is_none() &&
-            asset.tradable.is_none() &&
-            asset.description.is_none() &&
-            asset.organization.is_none()) {
+    if asset.name.is_none() &&
+        asset.symbol.is_none() &&
+        asset.listable.is_none() &&
+        asset.tradable.is_none() &&
+        asset.description.is_none() &&
+        asset.organization.is_none() {
         return Ok(true);
     }
     let mut first = true;
@@ -247,14 +250,24 @@ pub async fn update_asset(asset_id: &str, asset: &UpdateAssetRequest, pg_pool: &
             query_builder.push(", ");
         }
         query_builder.push("tradable = ").push_bind(tradable);
+        first = false;
+    }
+
+    if !first {
+        query_builder.push(", ");
     }
 
     // SET the necessary fields
-    query_builder.push(", updated_at = ").push_bind(asset.updated_at);
+    query_builder.push("updated_at = ").push_bind(Utc::now());
     query_builder.push(", updated_by = ").push_bind(&asset.updated_by);
 
     // SET WHERE clause
     query_builder.push(" WHERE id = ").push_bind(asset_id);
+
+    if pg_pool.is_closed() {
+        error!("Database connection pool is closed");
+        return Err(DatabaseError::PoolClosed);
+    }
 
     match query_builder.build().execute(pg_pool).await {
         Ok(res) => Ok(res.rows_affected() > 0),

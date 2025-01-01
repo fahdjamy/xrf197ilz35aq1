@@ -93,7 +93,6 @@ pub struct UpdateAssetRequest {
     pub symbol: Option<String>,
     pub listable: Option<bool>,
     pub tradable: Option<bool>,
-    pub updated_at: DateTime<Utc>,
     pub description: Option<String>,
     pub organization: Option<String>,
 }
@@ -108,7 +107,6 @@ impl UpdateAssetRequest {
         description: Option<String>,
         organization: Option<String>,
     ) -> Self {
-        let now = Utc::now();
         Self {
             name,
             symbol,
@@ -117,7 +115,6 @@ impl UpdateAssetRequest {
             updated_by,
             description,
             organization,
-            updated_at: now,
         }
     }
 }
