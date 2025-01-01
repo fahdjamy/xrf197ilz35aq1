@@ -1,7 +1,10 @@
 use crate::configs::GrpcServerConfig;
-use crate::core::{create_new_asset, delete_asset_by_id, find_asset_by_id, find_asset_by_id_and_org_id, find_assets_name_like, get_all_assets, Asset, DatabaseError, DomainError, OrderType};
+use crate::core::{create_new_asset, delete_asset_by_id, find_asset_by_id, find_asset_by_id_and_org_id, find_assets_name_like, get_all_assets, update_asset, Asset, DatabaseError, DomainError, OrderType, UpdateAssetRequest};
 use crate::server::grpc::server::asset::asset_service_server::{AssetService, AssetServiceServer};
-use crate::server::grpc::server::asset::{Asset as GrpcAsset, CreateRequest, CreateResponse, DeleteAssetRequest, DeleteAssetResponse, GetAssetByIdRequest, GetAssetByIdResponse, GetAssetsNameLikeRequest, GetAssetsNameLikeResponse, GetPaginatedAssetsRequest, GetPaginatedAssetsResponse, GetStreamedAssetsRequest, GetStreamedAssetsResponse, UpdateAssetRequest, UpdateAssetResponse};
+use crate::server::grpc::server::asset::{Asset as GrpcAsset, CreateRequest, CreateResponse,
+                                         DeleteAssetRequest, DeleteAssetResponse, GetAssetByIdRequest, GetAssetByIdResponse,
+                                         GetAssetsNameLikeRequest, GetAssetsNameLikeResponse, GetPaginatedAssetsRequest,
+                                         GetPaginatedAssetsResponse, GetStreamedAssetsRequest, GetStreamedAssetsResponse, UpdateAssetRequest as GrpcUpdateAsset, UpdateAssetResponse};
 use anyhow::Context;
 use prost_types::Timestamp;
 use sqlx::PgPool;
@@ -40,6 +43,20 @@ impl From<Asset> for GrpcAsset {
             }),
             listable: asset.listable,
             tradable: asset.tradable,
+        }
+    }
+}
+
+impl From<GrpcUpdateAsset> for UpdateAssetRequest {
+    fn from(value: GrpcUpdateAsset) -> Self {
+        UpdateAssetRequest {
+            name: value.name,
+            symbol: value.symbol,
+            tradable: value.tradable,
+            listable: value.listable,
+            updated_by: value.user_fp,
+            description: value.description,
+            organization: Option::from(value.org_id),
         }
     }
 }
@@ -99,8 +116,49 @@ impl AssetService for AssetServiceManager {
         Ok(Response::new(response))
     }
 
-    async fn update_asset(&self, _: Request<UpdateAssetRequest>) -> Result<Response<UpdateAssetResponse>, Status> {
-        todo!()
+    async fn update_asset(&self, request: Request<GrpcUpdateAsset>) -> Result<Response<UpdateAssetResponse>, Status> {
+        let req = request.into_inner();
+        info!("updating asset :: id = {}", &req.asset_id);
+
+        let org_id = req.org_id.clone();
+        let asset_id = req.asset_id.clone();
+        if asset_id.is_empty() || org_id.is_empty() {
+            return Err(Status::invalid_argument("please provide a valid asset id and organization id"));
+        }
+
+        let updated_asset_req: UpdateAssetRequest = req.into();
+
+        if updated_asset_req.updated_by.is_empty() {
+            return Err(Status::invalid_argument("user finger print for user is required"));
+        }
+
+        if updated_asset_req.name.is_none()
+            && updated_asset_req.symbol.is_none()
+            && updated_asset_req.listable.is_none()
+            && updated_asset_req.tradable.is_none()
+            && updated_asset_req.description.is_none() {
+            return Err(Status::invalid_argument("At least one updatable field is required"));
+        }
+
+        let response = match update_asset(&asset_id, &updated_asset_req, &self.pg_pool).await {
+            Ok(updated) => updated,
+            Err(e) => {
+                return match e {
+                    DatabaseError::InvalidArgument(msg) => Err(Status::invalid_argument(msg)),
+                    DatabaseError::NotFound => Err(Status::not_found("Asset not found")),
+                    DatabaseError::PoolClosed => {
+                        error!("Error while updating asset: connection closed");
+                        Err(Status::unavailable("Database connection closed"))
+                    },
+                    _ => {
+                        error!("Error while updating asset: {:?}", e);
+                        Err(Status::internal("Internal server error while updating asset"))
+                    },
+                };
+            }
+        };
+
+        Ok(Response::new(UpdateAssetResponse { updated: response }))
     }
 
     async fn delete_asset(&self, request: Request<DeleteAssetRequest>) -> Result<Response<DeleteAssetResponse>, Status> {
