@@ -3,17 +3,25 @@ use tracing_appender::non_blocking;
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_appender::rolling::{RollingFileAppender, Rotation};
 use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
+use tracing_subscriber::filter::LevelFilter;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::{fmt, registry, EnvFilter, Layer};
 
 pub fn tracing_setup(app_name: &str, log_config: LogConfig) -> WorkerGuard {
     // Get the current crate name.
-    let crate_name = env!("CARGO_PKG_NAME");
+    let crate_name = option_env!("CARGO_PKG_NAME")
+        .unwrap_or_else(|| app_name);
+    let log_level = log_config.level.to_lowercase();
 
-    let console_filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-        tracing_subscriber::EnvFilter::from(log_config.level.as_str().to_lowercase())
-    });
+    // // as a deny filter (DEBUG, but remove noisy logs)
+    let console_filter = EnvFilter::builder()
+        .with_default_directive(LevelFilter::DEBUG.into())
+        .from_env()
+        .expect("Env log level needs to be set to a valid level")
+        .add_directive(format!("{crate_name}={log_level}")
+            .parse()
+            .expect("Failed to parse directive for console log"));
 
     let file_filter = EnvFilter::from(format!("{crate_name}=info"));
 
@@ -47,7 +55,7 @@ pub fn tracing_setup(app_name: &str, log_config: LogConfig) -> WorkerGuard {
 fn file_log_dest(log_config: LogConfig) -> RollingFileAppender {
     let output = log_config.output;
     let file_appender = RollingFileAppender::builder()
-        .rotation(Rotation::DAILY) // rotate log files once every hour
+        .rotation(Rotation::DAILY) // rotate log files once every day
         .filename_prefix(log_config.prefix) // log file names will be prefixed with `xrf1`
         .filename_suffix(log_config.suffix) // log file names will be suffixed with `.log`
         .build(output.clone()) // build an appender that stores log files in `.logs`
