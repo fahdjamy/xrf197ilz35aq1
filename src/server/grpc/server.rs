@@ -5,6 +5,7 @@ use crate::server::grpc::server::asset::{Asset as GrpcAsset, CreateRequest, Crea
                                          DeleteAssetRequest, DeleteAssetResponse, GetAssetByIdRequest, GetAssetByIdResponse,
                                          GetAssetsNameLikeRequest, GetAssetsNameLikeResponse, GetPaginatedAssetsRequest,
                                          GetPaginatedAssetsResponse, GetStreamedAssetsRequest, GetStreamedAssetsResponse, UpdateAssetRequest as GrpcUpdateAsset, UpdateAssetResponse};
+use crate::server::{generate_request_id, REQUEST_ID_KEY};
 use anyhow::Context;
 use prost_types::Timestamp;
 use sqlx::PgPool;
@@ -13,6 +14,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
 use tonic::codegen::tokio_stream::Stream;
+use tonic::metadata::{MetadataKey, MetadataValue};
 use tonic::transport::{Error, Server};
 use tonic::{Request, Response, Status};
 use tower::ServiceBuilder;
@@ -389,5 +391,12 @@ impl GrpcServer {
             .add_service(AssetServiceServer::new(self.asset_service))
             .serve(self.addr)
             .await
+    }
+
+    fn request_id_interceptor(mut req: Request<()>) -> Result<Request<()>, Status> {
+        let req_id = generate_request_id();
+        req.metadata_mut()
+            .insert(MetadataKey::from_static(REQUEST_ID_KEY), MetadataValue::from_str(&req_id).unwrap());
+        Ok(req)
     }
 }

@@ -31,6 +31,7 @@ prost-types = "0.13.4"
 
 uuid = { version = "1.11.0", features = ["v4"] }
 async-stream = "0.3.6"
+futures = "0.3.31"
 
 [dependencies.sqlx]
 version = "0.8.2"
