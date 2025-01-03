@@ -18,6 +18,7 @@ pub struct LogConfig {
 #[derive(Deserialize, Clone)]
 pub struct GrpcServerConfig {
     pub port: String,
+    pub timeout: u16,
 }
 
 #[derive(Deserialize, Clone)]
