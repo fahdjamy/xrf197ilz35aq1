@@ -11,9 +11,11 @@ use sqlx::PgPool;
 use std::pin::Pin;
 use std::str::FromStr;
 use std::sync::Arc;
+use std::time::Duration;
 use tonic::codegen::tokio_stream::Stream;
 use tonic::transport::{Error, Server};
 use tonic::{Request, Response, Status};
+use tower::ServiceBuilder;
 use tracing::{debug, error, info, log};
 
 const MAX_DB_LIMIT: usize = 1000;
@@ -351,6 +353,7 @@ async fn fetch_assets(pg_pool: &PgPool, start: i64, limit: i16, sort_order: &str
 }
 
 pub struct GrpcServer {
+    timeout: Duration,
     addr: core::net::SocketAddr,
     asset_service: AssetServiceManager,
 }
@@ -361,16 +364,28 @@ impl GrpcServer {
             .parse()
             .context("Failed to parse grpc server address")?;
         let asset_service = AssetServiceManager::new(pg_pool);
+        let config_timeout = config.timeout;
 
         Ok(Self {
             addr,
             asset_service,
+            timeout: Duration::from_millis(config_timeout as u64),
         })
     }
 
     pub async fn run_until_stopped(self) -> Result<(), Error> {
         info!("starting gRPC server :: port {}", &self.addr.port());
+
+        // Tower: Setting up interceptors
+        // Stack of middleware that the service will be wrapped in
+        let tower_layers = ServiceBuilder::new()
+            // Apply request-id interceptor
+            // .layer(tonic::service::interceptor(Self::request_id_interceptor))
+            .into_inner();
+
         Server::builder()
+            .layer(tower_layers)
+            .max_connection_age(self.timeout)
             .add_service(AssetServiceServer::new(self.asset_service))
             .serve(self.addr)
             .await

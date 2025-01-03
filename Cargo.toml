@@ -15,6 +15,7 @@ tracing-bunyan-formatter = "0.3.10"
 config = "0.15.4"
 anyhow = "1.0.94"
 secrecy = { version = "0.10.3", features = ["serde"] }
+tower = { version = "0.5.2", features = ["full"] }
 # We need the optional `derive` feature to use `serde`'s procedural macros:
 # `#[derive(Serialize)]` & `#[derive(Deserialize)]`. The feature is not enabled by default to avoid pulling
 # unnecessary deps for projects that do not need it.
