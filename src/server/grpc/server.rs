@@ -14,7 +14,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
 use tonic::codegen::tokio_stream::Stream;
-use tonic::metadata::{MetadataKey, MetadataValue};
+use tonic::metadata::{KeyAndValueRef, MetadataKey, MetadataValue};
 use tonic::transport::{Error, Server};
 use tonic::{Request, Response, Status};
 use tower::ServiceBuilder;
@@ -382,7 +382,8 @@ impl GrpcServer {
         // Stack of middleware that the service will be wrapped in
         let tower_layers = ServiceBuilder::new()
             // Apply request-id interceptor
-            // .layer(tonic::service::interceptor(Self::request_id_interceptor))
+            .layer(tonic::service::interceptor(Self::request_id_interceptor))
+            // .layer(ResponseIdInterceptor::default())
             .into_inner();
 
         Server::builder()
@@ -397,6 +398,16 @@ impl GrpcServer {
         let req_id = generate_request_id();
         req.metadata_mut()
             .insert(MetadataKey::from_static(REQUEST_ID_KEY), MetadataValue::from_str(&req_id).unwrap());
+
+        for key_and_value in req.metadata_mut().iter() {
+            match key_and_value {
+                KeyAndValueRef::Ascii(ref key, ref value) =>
+                    debug!("Header :: Ascii :: {:?}: {:?}", key, value),
+                KeyAndValueRef::Binary(ref key, ref value) =>
+                    debug!("Header :: Binary :: {:?}: {:?}", key, value),
+            }
+        }
+
         Ok(req)
     }
 }
