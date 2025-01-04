@@ -1,3 +1,4 @@
+use crate::common::{generate_request_id, REQUEST_ID_KEY};
 use crate::configs::GrpcServerConfig;
 use crate::core::{create_new_asset, delete_asset_by_id, find_asset_by_id, find_asset_by_id_and_org_id, find_assets_name_like, get_all_assets, update_asset, Asset, DatabaseError, DomainError, OrderType, UpdateAssetRequest};
 use crate::server::grpc::server::asset::asset_service_server::{AssetService, AssetServiceServer};
@@ -5,7 +6,6 @@ use crate::server::grpc::server::asset::{Asset as GrpcAsset, CreateRequest, Crea
                                          DeleteAssetRequest, DeleteAssetResponse, GetAssetByIdRequest, GetAssetByIdResponse,
                                          GetAssetsNameLikeRequest, GetAssetsNameLikeResponse, GetPaginatedAssetsRequest,
                                          GetPaginatedAssetsResponse, GetStreamedAssetsRequest, GetStreamedAssetsResponse, UpdateAssetRequest as GrpcUpdateAsset, UpdateAssetResponse};
-use crate::server::{generate_request_id, REQUEST_ID_KEY};
 use anyhow::Context;
 use prost_types::Timestamp;
 use sqlx::PgPool;

@@ -1,4 +1,4 @@
-use crate::server::REQUEST_ID_KEY;
+use crate::common::REQUEST_ID_KEY;
 use futures::future::BoxFuture;
 use std::str::FromStr;
 use std::task::{Context, Poll};
