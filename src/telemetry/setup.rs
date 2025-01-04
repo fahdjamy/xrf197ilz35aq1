@@ -1,4 +1,5 @@
 use crate::configs::LogConfig;
+use crate::telemetry::interceptor::RequestIdLayer;
 use tracing_appender::non_blocking;
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_appender::rolling::{RollingFileAppender, Rotation};
@@ -6,7 +7,7 @@ use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
 use tracing_subscriber::filter::LevelFilter;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
-use tracing_subscriber::{fmt, registry, EnvFilter, Layer};
+use tracing_subscriber::{fmt, EnvFilter, Layer};
 
 pub fn tracing_setup(app_name: &str, log_config: LogConfig) -> WorkerGuard {
     // Get the current crate name.
@@ -41,10 +42,14 @@ pub fn tracing_setup(app_name: &str, log_config: LogConfig) -> WorkerGuard {
         .with_writer(std::io::stdout)
         .with_filter(console_filter);
 
-    registry()
+    tracing_subscriber::registry()
         .with(file_log_dest) // File logging
         .with(JsonStorageLayer) // Only concerned w/ info storage, it doesn't do any formatting or provide any output.
         .with(stdout_log_dest) // Console logging
+        // add the request ID layer.
+        .with(RequestIdLayer)
+        // Set the registry as the global default subscriber.
+        // init Attempts to set self as the global default subscriber in the current scope, panics if this fails
         .init();
 
     // this is returned so as logs get written to the file
