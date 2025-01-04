@@ -18,7 +18,7 @@ use tonic::metadata::{KeyAndValueRef, MetadataKey, MetadataValue};
 use tonic::transport::{Error, Server};
 use tonic::{Request, Response, Status};
 use tower::ServiceBuilder;
-use tracing::{debug, error, info, log};
+use tracing::{debug, error, info, info_span, log};
 
 const MAX_DB_LIMIT: usize = 1000;
 
@@ -229,6 +229,10 @@ impl AssetService for AssetServiceManager {
     }
 
     async fn get_paginated_assets(&self, request: Request<GetPaginatedAssetsRequest>) -> Result<Response<GetPaginatedAssetsResponse>, Status> {
+        let request_id = generate_request_id();
+        let span = info_span!("gRPC", request_id = request_id);
+        let _guard = span.enter();
+
         let req = request.into_inner();
         if req.offset < 0 || req.limit < 0 || (req.offset == 0 && req.limit == 0) {
             return Err(Status::invalid_argument("start and limit must be positive"));
@@ -396,16 +400,25 @@ impl GrpcServer {
 
     fn request_id_interceptor(mut req: Request<()>) -> Result<Request<()>, Status> {
         let req_id = generate_request_id();
+        let span = info_span!("gRPC", request_id = req_id);
+        let _guard = span.enter();
+
         req.metadata_mut()
             .insert(MetadataKey::from_static(REQUEST_ID_KEY), MetadataValue::from_str(&req_id).unwrap());
 
+        let mut header_string = String::new();
+
         for key_and_value in req.metadata_mut().iter() {
-            match key_and_value {
-                KeyAndValueRef::Ascii(ref key, ref value) =>
-                    debug!("Header :: Ascii :: {:?}: {:?}", key, value),
-                KeyAndValueRef::Binary(ref key, ref value) =>
-                    debug!("Header :: Binary :: {:?}: {:?}", key, value),
-            }
+            let value_str = match key_and_value {
+                KeyAndValueRef::Ascii(key, val) => {
+                    &format!("{}:{:?}", key.as_str(), val)
+                }
+                KeyAndValueRef::Binary(key, val) => {
+                    &format!("{}:{:?}", key.as_str(), val)
+                }
+            };
+
+            header_string.push_str(&format!("{}; ", value_str));
         }
 
         Ok(req)
