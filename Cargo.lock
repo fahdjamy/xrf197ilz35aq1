@@ -3480,6 +3480,7 @@ dependencies = [
  "chrono",
  "config",
  "futures",
+ "http-body",
  "prost",
  "prost-types",
  "rand 0.9.0-beta.0",
