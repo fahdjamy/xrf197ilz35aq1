@@ -1,67 +1,88 @@
-use crate::common::REQUEST_ID_KEY;
-use futures::future::BoxFuture;
+use crate::common::{generate_request_id, RequestId, REQUEST_ID_KEY};
+use anyhow::Result;
+use futures::Future;
+use std::pin::Pin;
 use std::str::FromStr;
-use std::task::{Context, Poll};
-use tonic::metadata::MetadataValue;
+use tonic::{metadata::{KeyAndValueRef, MetadataKey, MetadataValue}, Request};
 use tower::{Layer, Service};
+use tracing::{info, info_span, Instrument, Span};
 
-// Define a new struct for your response interceptor
-#[derive(Debug, Clone, Default)]
-pub struct ResponseIdInterceptor;
+// Define a struct to represent your interceptor layer
+#[derive(Clone, Default)]
+pub struct RequestIdInterceptorLayer;
 
-impl<S> Layer<S> for ResponseIdInterceptor {
-    type Service = ResponseIdService<S>;
+// Implement the `Layer` trait for your `RequestIdInterceptorLayer`
+impl<S> Layer<S> for RequestIdInterceptorLayer {
+    type Service = RequestIdInterceptor<S>;
 
     fn layer(&self, service: S) -> Self::Service {
-        ResponseIdService { inner: service }
+        RequestIdInterceptor { inner: service }
     }
 }
 
-// Implement the Service trait for your response interceptor
-#[derive(Debug, Clone)]
-pub struct ResponseIdService<S> {
+// Define the interceptor struct
+#[derive(Clone)]
+struct RequestIdInterceptor<S> {
     inner: S,
 }
 
-impl<S, Request, Response> Service<Request> for ResponseIdService<S>
+// Implement the `Service` trait for your `RequestIdInterceptor`
+impl<S, B> Service<Request<B>> for RequestIdInterceptor<S>
 where
-    S: Service<Request, Response=tonic::Response<Response>> + Send + Clone + 'static,
+    S: Service<Request<B>>,
     S::Future: Send + 'static,
-    Request: Send + Clone + 'static,
 {
     type Response = S::Response;
     type Error = S::Error;
-    type Future = BoxFuture<'static, Result<Self::Response, Self::Error>>;
+    type Future = Pin<Box<dyn Future<Output=Result<Self::Response, Self::Error>> + Send + 'static>>;
 
-    fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+    fn poll_ready(&mut self, cx: &mut std::task::Context<'_>) -> std::task::Poll<Result<(), Self::Error>> {
         self.inner.poll_ready(cx)
     }
 
-    fn call(&mut self, req: Request) -> Self::Future {
-        let mut inner = self.inner.clone();
+    fn call(&mut self, mut req: Request<B>) -> Self::Future {
+        let req_id = generate_request_id();
 
-        Box::pin(async move {
-            // Convert the request and store it in a variable
-            // let mut tonic_request = req.clone().into_request();
-            //
-            // // Get the metadata from the stored request
-            // let metadata = tonic_request.metadata_mut();
-            //
-            // // Get the request ID from the metadata
-            // let req_id = metadata.get(REQUEST_ID_KEY)
-            //     .and_then(|v| v.to_str().ok())
-            //     .unwrap_or("unknown");
+        // Insert the request ID into the request's metadata.
+        req.metadata_mut()
+            .insert(MetadataKey::from_static(REQUEST_ID_KEY), MetadataValue::from_str(&req_id).unwrap());
 
-            // Call the inner service
-            let mut response = inner.call(req).await?;
+        // Create a new span for the request with the generated request ID.
+        let span = info_span!("gRPC", request_id = req_id);
 
-            // Add the request ID to the response metadata
-            response.metadata_mut().insert(
-                REQUEST_ID_KEY,
-                MetadataValue::from_str("req_id").unwrap(),
-            );
+        // Store the request ID in the span's extensions.
+        span.in_scope(|| {
+            if let Some(span_ref) = Span::current().into() {
+                let mut extensions = span_ref.extensions_mut();
+                extensions.insert::<RequestId>(RequestId(req_id.clone()));
+            }
+        });
 
-            Ok(response)
-        })
+        // Instrument the request handling with the new span.
+        let fut = {
+            let span = span.clone();
+            async move {
+                let mut header_string = String::new();
+
+                for key_and_value in req.metadata_mut().iter() {
+                    let value_str = match key_and_value {
+                        KeyAndValueRef::Ascii(key, val) => {
+                            &format!("{}:{:?}", key.as_str(), val)
+                        }
+                        KeyAndValueRef::Binary(key, val) => {
+                            &format!("{}:{:?}", key.as_str(), val)
+                        }
+                    };
+
+                    header_string.push_str(&format!("{}; ", value_str));
+                }
+
+                info!("request-headers: '{}'", header_string);
+
+                self.inner.call(req).instrument(span).await
+            }
+        };
+
+        Box::pin(fut.instrument(span))
     }
 }
