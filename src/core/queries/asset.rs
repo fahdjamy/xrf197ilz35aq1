@@ -73,7 +73,7 @@ pub async fn find_asset_by_id_and_org_id(asset_id: &str, org_id: &str, pg_pool: 
     Ok(result)
 }
 
-#[tracing::instrument(level = "debug", skip(pg_pool, limit, offset))]
+#[tracing::instrument(level = "debug", skip(pg_pool, limit, offset, order_by))]
 pub async fn get_all_assets(pg_pool: &PgPool, offset: i64, limit: i64, order_by: OrderType) -> Result<Vec<Asset>, DatabaseError> {
     if limit < 1 || limit > 100 {
         return Err(DatabaseError::InvalidArgument("limit must be between 1 and 100".to_string()));

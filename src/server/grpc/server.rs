@@ -26,6 +26,20 @@ pub mod asset {
     tonic::include_proto!("asset_rpc");
 }
 
+macro_rules! trace_request {
+    ($req:expr, $span_name:expr) => {
+        // Extract request ID from metadata
+        let request_id = $req.metadata().get(REQUEST_ID_KEY)
+            .and_then(|id| id.to_str().ok())
+            .map(|s| s.to_string())
+            .unwrap_or_else(|| "unknown".to_string());
+
+        // Create span for this method, linked to the gRPC span by the request ID
+        let span = info_span!($span_name, request_id = request_id);
+        let _enter = span.enter();
+    };
+}
+
 const MAX_LIMIT: i16 = 100;
 
 impl From<Asset> for GrpcAsset {
@@ -229,6 +243,7 @@ impl AssetService for AssetServiceManager {
     }
 
     async fn get_paginated_assets(&self, request: Request<GetPaginatedAssetsRequest>) -> Result<Response<GetPaginatedAssetsResponse>, Status> {
+        trace_request!(request, "get_paginated_assets");
         let request_id = generate_request_id();
         let span = info_span!("gRPC", request_id = request_id);
         let _guard = span.enter();
@@ -387,7 +402,6 @@ impl GrpcServer {
         let tower_layers = ServiceBuilder::new()
             // Apply request-id interceptor
             .layer(tonic::service::interceptor(Self::request_id_interceptor))
-            // .layer(ResponseIdInterceptor::default())
             .into_inner();
 
         Server::builder()
