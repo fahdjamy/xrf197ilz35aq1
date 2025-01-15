@@ -116,6 +116,7 @@ impl AssetServiceManager {
 #[tonic::async_trait]
 impl AssetService for AssetServiceManager {
     async fn create(&self, request: Request<CreateRequest>) -> Result<Response<CreateResponse>, Status> {
+        trace_request!(request, "create_asset");
         let req = request.into_inner();
         info!("creating new asset :: (name={} -> symbol={})", &req.name, &req.symbol);
         let asset = Asset::new(req.name, req.symbol, "req.".parse().unwrap(), req.description, req.organization)
@@ -135,6 +136,7 @@ impl AssetService for AssetServiceManager {
     }
 
     async fn update_asset(&self, request: Request<GrpcUpdateAsset>) -> Result<Response<UpdateAssetResponse>, Status> {
+        trace_request!(request, "update_asset");
         let req = request.into_inner();
         info!("updating asset :: id = {}", &req.asset_id);
 
@@ -180,6 +182,7 @@ impl AssetService for AssetServiceManager {
     }
 
     async fn delete_asset(&self, request: Request<DeleteAssetRequest>) -> Result<Response<DeleteAssetResponse>, Status> {
+        trace_request!(request, "delete_asset");
         let req = request.into_inner();
         info!("deleting asset :: id = {}", &req.asset_id);
         let org_id = req.org_id;
@@ -206,6 +209,7 @@ impl AssetService for AssetServiceManager {
     }
 
     async fn get_asset_by_id(&self, request: Request<GetAssetByIdRequest>) -> Result<Response<GetAssetByIdResponse>, Status> {
+        trace_request!(request, "get_asset_by_id");
         let req = request.into_inner();
         info!("get asset by id :: id={}", &req.asset_id);
         let asset_id = req.asset_id;
@@ -223,6 +227,7 @@ impl AssetService for AssetServiceManager {
     }
 
     async fn get_assets_name_like(&self, request: Request<GetAssetsNameLikeRequest>) -> Result<Response<GetAssetsNameLikeResponse>, Status> {
+        trace_request!(request, "get_assets_name_like");
         let req = request.into_inner();
         info!("get assets name-like :: name={}", &req.name);
         let assets = find_assets_name_like(&req.name, req.offset as i64, req.limit as usize, OrderType::Asc, &self.pg_pool)
@@ -277,6 +282,7 @@ impl AssetService for AssetServiceManager {
 
     async fn get_streamed_assets(&self, request: Request<GetStreamedAssetsRequest>)
                                  -> Result<Response<Self::GetStreamedAssetsStream>, Status> {
+        trace_request!(request, "get_streamed_assets");
         let req = request.into_inner();
         validate_request_parameters(req.offset, req.limit)?;
 
