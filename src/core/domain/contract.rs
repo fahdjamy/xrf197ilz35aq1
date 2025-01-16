@@ -2,6 +2,19 @@ use crate::core::domain::key::{generate_unique_key, DOMAIN_KEY_SIZE};
 use chrono::{DateTime, Utc};
 use std::fmt::Display;
 
+#[derive(Clone, Debug)]
+pub enum ContractVersion {
+    V1
+}
+
+impl Display for ContractVersion {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ContractVersion::V1 => write!(f, "v1")
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Contract {
     pub id: String,
@@ -11,6 +24,7 @@ pub struct Contract {
     pub update_count: i32,
     pub updated_by: String,
     pub organization: String,
+    pub version: ContractVersion,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -34,6 +48,7 @@ impl Contract {
             updated_by: user_fp,
             created_at: Utc::now(),
             updated_at: Utc::now(),
+            version: ContractVersion::V1,
         }
     }
 }
