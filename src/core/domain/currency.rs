@@ -1,51 +1,38 @@
 use std::fmt::{Display, Formatter};
 
 #[derive(serde::Deserialize, Clone, Debug, PartialEq, Eq)]
-pub enum Crypto {
-    Bitcoin,
-    Ethereum,
-    Xrp,
-}
-
-impl Display for Crypto {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Crypto::Bitcoin => { write!(f, "Bitcoin") }
-            Crypto::Ethereum => { write!(f, "Ethereum") }
-            Crypto::Xrp => { write!(f, "Xrp") }
-        }
-    }
-}
-
-#[derive(serde::Deserialize, Clone, Debug, PartialEq, Eq)]
-pub enum Fiat {
+pub enum Currency {
     USD,
     EUR,
+    XRP,
+    BITCOIN,
 }
 
-impl Display for Fiat {
+impl Display for Currency {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Fiat::USD => { write!(f, "USD") }
-            Fiat::EUR => { write!(f, "EUR") }
+            Currency::USD => { write!(f, "USD") }
+            Currency::EUR => { write!(f, "EUR") }
+            Currency::XRP => { write!(f, "XRP") }
+            Currency::BITCOIN => { write!(f, "BITCOIN") }
         }
     }
 }
 
-impl Fiat {
+impl Currency {
     pub fn from_string(s: &str) -> Option<Self> {
         match s.to_uppercase().as_str() {
-            "USD" => Some(Fiat::USD),
-            "EUR" => Some(Fiat::EUR),
+            "EUR" => Some(Currency::EUR),
+            "USD" => Some(Currency::USD),
+            "BITCOIN" => Some(Currency::BITCOIN),
+            "XRP" => Some(Currency::XRP),
             _ => None
         }
     }
-}
 
-#[derive(serde::Deserialize, Clone, Debug)]
-pub enum Currency {
-    Crypto,
-    Fiat,
+    pub fn is_crypto(&self) -> bool {
+        matches!(self, Currency::XRP) || matches!(self, Currency::BITCOIN)
+    }
 }
 
 #[cfg(test)]
@@ -55,15 +42,15 @@ mod tests {
     #[test]
     fn test_from_string_valid_values() {
         let test_cases = vec![
-            ("USD", Some(Fiat::USD)),
-            ("usd", Some(Fiat::USD)),
-            ("EUR", Some(Fiat::EUR)),
-            ("eur", Some(Fiat::EUR)),
-            ("UsD", Some(Fiat::USD)),
+            ("USD", Some(Currency::USD)),
+            ("usd", Some(Currency::USD)),
+            ("EUR", Some(Currency::EUR)),
+            ("eur", Some(Currency::EUR)),
+            ("UsD", Some(Currency::USD)),
         ];
 
         for (input, expected) in test_cases {
-            assert_eq!(Fiat::from_string(input), expected);
+            assert_eq!(Currency::from_string(input), expected);
         }
     }
 
@@ -82,7 +69,7 @@ mod tests {
         ];
 
         for input in test_cases {
-            assert_eq!(Fiat::from_string(input), None);
+            assert_eq!(Currency::from_string(input), None);
         }
     }
 }
