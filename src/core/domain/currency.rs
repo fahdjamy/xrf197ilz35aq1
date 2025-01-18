@@ -24,8 +24,8 @@ impl Currency {
         match s.to_uppercase().as_str() {
             "EUR" => Some(Currency::EUR),
             "USD" => Some(Currency::USD),
-            "BITCOIN" => Some(Currency::BITCOIN),
             "XRP" => Some(Currency::XRP),
+            "BITCOIN" => Some(Currency::BITCOIN),
             _ => None
         }
     }
