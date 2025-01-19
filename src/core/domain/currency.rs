@@ -117,6 +117,30 @@ impl Currency {
                 | Currency::BinanceCoin
         )
     }
+
+    pub fn db_string(&self) -> &'static str {
+        match self {
+            Currency::USD => "USD",
+            Currency::EUR => "EUR",
+            Currency::XRP => "XRP",
+            Currency::RUB => "RUB",
+            Currency::ARS => "ARS",
+            Currency::BRL => "BRL",
+            Currency::CNY => "CNY",
+            Currency::GBP => "GBP",
+            Currency::MXN => "MXN",
+            Currency::QAR => "QAR",
+            Currency::JPY => "JPY",
+            Currency::DOGE => "DOGE",
+            Currency::XRFQ => "XRFQ",
+            Currency::SOLANA => "SOL",
+            Currency::BITCOIN => "BTC",
+            Currency::TETHER => "USDT",
+            Currency::CARDANO => "ADA",
+            Currency::ETHEREUM => "ETH",
+            Currency::BinanceCoin => "BNB",
+        }
+    }
 }
 
 #[cfg(test)]
