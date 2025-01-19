@@ -32,6 +32,9 @@ prost-types = "0.13.4"
 uuid = { version = "1.11.0", features = ["v4"] }
 async-stream = "0.3.6"
 
+strum_macros = "0.26.4"
+strum = { version = "0.26", features = ["derive"] }
+
 [dependencies.sqlx]
 version = "0.8.2"
 default-features = false

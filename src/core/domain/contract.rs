@@ -1,6 +1,7 @@
 use crate::core::domain::key::{generate_unique_key, DOMAIN_KEY_SIZE};
 use crate::core::{Currency, DomainError};
 use chrono::{DateTime, Utc};
+use std::collections::HashSet;
 use std::fmt::Display;
 
 #[derive(Clone, Debug)]
@@ -29,7 +30,7 @@ pub struct Contract {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub anonymous_buyer_only: bool,
-    pub accepted_currency: Vec<Currency>,
+    pub accepted_currency: HashSet<Currency>,
 }
 
 impl Display for Contract {
@@ -45,7 +46,7 @@ impl Contract {
                user_fp: String,
                min_price: f64,
                anonymous_buyer: bool,
-               accepted_currency: Vec<Currency>) -> Result<Self, DomainError> {
+               accepted_currency: HashSet<Currency>) -> Result<Self, DomainError> {
         if accepted_currency.is_empty() {
             return Err(DomainError::InvalidArgument("accepted_currency should contain at least one currency".to_string()));
         }
