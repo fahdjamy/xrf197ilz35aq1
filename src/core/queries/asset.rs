@@ -88,7 +88,7 @@ pub async fn get_all_assets(pg_pool: &PgPool, offset: i64, limit: i64, order_by:
                 SELECT
                     id, name, symbol, description, organization, created_at, updated_at, tradable, listable, updated_by
                 FROM asset
-                ORDER BY name ASC
+                ORDER BY name
                 LIMIT $1 OFFSET $2
                 "#,
                 limit,
@@ -135,7 +135,7 @@ pub async fn find_assets_symbol_like(symbol: &str, limit: i16, offset: i64, orde
                     id, name, symbol, description, organization, created_at, updated_at, tradable, listable, updated_by
                 FROM asset
                 WHERE symbol LIKE $1
-                ORDER BY symbol ASC
+                ORDER BY symbol
                 LIMIT $2
                 OFFSET $3"#,
                 search_term,
@@ -180,7 +180,7 @@ pub async fn find_assets_name_like(name: &str, offset: i64, limit: usize, order_
                     id, name, symbol, description, organization, created_at, updated_at, tradable, listable, updated_by
                 FROM asset
                 WHERE name LIKE $1
-                ORDER BY name ASC
+                ORDER BY name
                 LIMIT $2
                 OFFSET $3"#,
                 search_term,
