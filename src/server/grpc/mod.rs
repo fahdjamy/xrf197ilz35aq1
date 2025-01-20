@@ -1,6 +1,6 @@
-mod asset_service;
 mod server;
-pub mod interceptors;
+mod interceptors;
+mod services;
 
 pub use server::GrpcServer;
 

@@ -1,7 +1,7 @@
 use crate::common::{generate_request_id, REQUEST_ID_KEY};
 use crate::configs::GrpcServerConfig;
 use crate::server::grpc::asset::asset_service_server::AssetServiceServer;
-use crate::server::grpc::asset_service::AssetServiceManager;
+use crate::server::grpc::services::AssetServiceManager;
 use anyhow::Context;
 use sqlx::PgPool;
 use std::str::FromStr;
