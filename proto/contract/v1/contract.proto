@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package proto.contract.v1;
+
+message CreateContractRequest {
+  string asset_id = 1;
+  string summary = 2;
+  string criteria = 3;
+  int32 min_price = 4;
+  string description = 5;
+  bool anonymous_buyers = 6;
+  repeated string accepted_languages = 7;
+}
+
+message CreateContractResponse {
+  bool contract_id = 1;
+}
+
+
+service ContractService {
+  rpc CreateContract(CreateContractRequest) returns (CreateContractResponse);
+}
