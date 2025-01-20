@@ -10,4 +10,5 @@ pub use asset::{create_new_asset,
                 find_assets_symbol_like,
                 get_all_assets,
                 update_asset};
+pub use contract::create_contract;
 pub use ordering::OrderType;
