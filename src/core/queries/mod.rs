@@ -1,5 +1,6 @@
 mod ordering;
 mod asset;
+mod contract;
 
 pub use asset::{create_new_asset,
                 delete_asset_by_id,
