@@ -34,6 +34,7 @@ async-stream = "0.3.6"
 
 strum_macros = "0.26.4"
 strum = { version = "0.26", features = ["derive"] }
+rayon = "1.10.0"
 
 [dependencies.sqlx]
 version = "0.8.2"

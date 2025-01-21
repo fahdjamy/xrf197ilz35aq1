@@ -20,7 +20,7 @@ impl Display for ContractVersion {
 #[derive(Debug, Clone)]
 pub struct Contract {
     pub id: String,
-    pub content: String,
+    pub details: String,
     pub min_price: f64,
     pub summary: String,
     pub asset_id: String,
@@ -41,7 +41,7 @@ impl Display for Contract {
 
 impl Contract {
     pub fn new(asset_id: String,
-               content: String,
+               details: String,
                summary: String,
                user_fp: String,
                min_price: f64,
@@ -57,7 +57,7 @@ impl Contract {
         let id = generate_unique_key(DOMAIN_KEY_SIZE);
         Ok(Self {
             id,
-            content,
+            details,
             summary,
             asset_id,
             min_price,

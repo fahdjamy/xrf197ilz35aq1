@@ -1,10 +1,12 @@
 use crate::common::{generate_request_id, REQUEST_ID_KEY};
 use crate::configs::GrpcServerConfig;
 use crate::server::grpc::asset::asset_service_server::AssetServiceServer;
-use crate::server::grpc::services::AssetServiceManager;
+use crate::server::grpc::asset::contract_service_server::ContractServiceServer;
+use crate::server::grpc::services::{AssetServiceManager, ContractServiceManager};
 use anyhow::Context;
 use sqlx::PgPool;
 use std::str::FromStr;
+use std::sync::Arc;
 use std::time::Duration;
 use tonic::metadata::{KeyAndValueRef, MetadataKey, MetadataValue};
 use tonic::transport::{Error, Server};
@@ -16,6 +18,7 @@ pub struct GrpcServer {
     timeout: Duration,
     addr: core::net::SocketAddr,
     asset_service: AssetServiceManager,
+    contract_service: ContractServiceManager,
 }
 
 impl GrpcServer {
@@ -23,12 +26,20 @@ impl GrpcServer {
         let addr = format!("[::]:{}", config.port)
             .parse()
             .context("Failed to parse grpc server address")?;
-        let asset_service = AssetServiceManager::new(pg_pool);
+
+        // Create the PgArc, so we only have one strong reference initially
+        let pg_pool_arc = Arc::new(pg_pool);
+
+        // create the services
+        let asset_service = AssetServiceManager::new(pg_pool_arc.clone());
+        let contract_service = ContractServiceManager::new(pg_pool_arc.clone());
+
         let config_timeout = config.timeout;
 
         Ok(Self {
             addr,
             asset_service,
+            contract_service,
             timeout: Duration::from_millis(config_timeout as u64),
         })
     }
@@ -47,6 +58,7 @@ impl GrpcServer {
             .layer(tower_layers)
             .max_connection_age(self.timeout)
             .add_service(AssetServiceServer::new(self.asset_service))
+            .add_service(ContractServiceServer::new(self.contract_service))
             .serve(self.addr)
             .await
     }

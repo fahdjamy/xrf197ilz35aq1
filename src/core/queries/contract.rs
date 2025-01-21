@@ -23,7 +23,7 @@ impl From<Contract> for DbContract {
     fn from(contract: Contract) -> Self {
         DbContract {
             id: contract.id,
-            content: contract.content,
+            content: contract.details,
             summary: contract.summary,
             asset_id: contract.asset_id,
             min_price: contract.min_price,

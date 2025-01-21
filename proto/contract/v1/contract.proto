@@ -7,9 +7,10 @@ message CreateContractRequest {
   string summary = 2;
   string criteria = 3;
   int32 min_price = 4;
-  string description = 5;
+  string details = 5;
   bool anonymous_buyers = 6;
-  repeated string accepted_languages = 7;
+  string user_finger_print = 7;
+  repeated string accepted_currencies = 8;
 }
 
 message CreateContractResponse {
