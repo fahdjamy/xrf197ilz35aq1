@@ -1,7 +1,7 @@
 use crate::common::REQUEST_ID_KEY;
 use crate::core::{create_contract, find_asset_by_id, Contract, Currency, DatabaseError};
 use crate::server::grpc::asset::contract_service_server::ContractService;
-use crate::server::grpc::asset::{CreateContractRequest, CreateContractResponse};
+use crate::server::grpc::asset::{CreateContractRequest, CreateContractResponse, CreateResponse};
 use crate::server::grpc::interceptors::trace_request;
 use rayon::prelude::*;
 use sqlx::PgPool;
@@ -26,13 +26,13 @@ impl ContractService for ContractServiceManager {
     async fn create_contract(&self, request: Request<CreateContractRequest>) -> Result<Response<CreateContractResponse>, Status> {
         trace_request!(request, "create_contract");
         let req = request.into_inner();
-        info!("creating new asset :: (name={} -> symbol={})", &req.asset_id, &req.asset_id);
+        info!("creating new contract :: (name={} -> symbol={})", &req.asset_id, &req.asset_id);
 
         let saved_asset = find_asset_by_id(&req.asset_id, &self.pg_pool).await
             .map_err(|err| match err {
                 DatabaseError::NotFound => {
                     error!(?req.asset_id, " asset not found");
-                    Status::not_found("asset not found")
+                    Status::not_found("invalid asset id")
                 },
                 _ => {
                     error!("Failed to fetch asset by id {} from database: {:?}", req.asset_id, err);
@@ -47,20 +47,25 @@ impl ContractService for ContractServiceManager {
         let anonymous_buyers_only = req.anonymous_buyers;
         let accepted_currencies = process_accepted_currencies(req.accepted_currencies)
             .map_err(|er| Status::invalid_argument(er.to_string()))?;
-        let _ = Contract::new(asset_id, details, req.summary, user_fp, min_price, anonymous_buyers_only, accepted_currencies)
+        let contract = Contract::new(asset_id, details, req.summary, user_fp, min_price, anonymous_buyers_only, accepted_currencies)
             .map_err(|err| Status::invalid_argument(err.to_string()))?;
+        let contract_id = contract.id.clone();
 
-        // let response = create_contract(&self.pg_pool, contract).await.map_err(|err| match err {
-        //     DatabaseError::InvalidArgument(err) => {
-        //         Status::invalid_argument(err.to_string())
-        //     },
-        //     _ => {
-        //         error!("Failed to create new asset : {:?}", err);
-        //         Status::internal("server error")
-        //     }
-        // })?;
-        // Ok()
-        todo!()
+        let contract_created = create_contract(&self.pg_pool, contract).await.map_err(|err| match err {
+            DatabaseError::InvalidArgument(err) => {
+                Status::invalid_argument(err.to_string())
+            },
+            _ => {
+                error!("message=Failed to create new asset contract :: err= {:?}", err);
+                Status::internal("server error")
+            }
+        })?;
+
+        if !contract_created {
+            error!(?contract_id, "contract not created");
+            return Err(Status::internal("contract not created, something went wrong"));
+        }
+        Ok(Response::new(CreateContractResponse { contract_id }))
     }
 }
 

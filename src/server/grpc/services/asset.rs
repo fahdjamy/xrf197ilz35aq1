@@ -1,4 +1,4 @@
-use crate::common::{generate_request_id, REQUEST_ID_KEY};
+use crate::common::REQUEST_ID_KEY;
 use crate::core::{create_new_asset, delete_asset_by_id, find_asset_by_id, find_asset_by_id_and_org_id, find_assets_name_like, get_all_assets, update_asset, Asset, DatabaseError, DomainError, OrderType, UpdateAssetRequest};
 use crate::server::grpc::asset::asset_service_server::AssetService;
 use crate::server::grpc::asset::{Asset as GrpcAsset, CreateRequest, CreateResponse,
@@ -85,8 +85,8 @@ pub struct AssetServiceManager {
 }
 
 impl AssetServiceManager {
-    pub fn new(pg_pool: PgPool) -> Self {
-        AssetServiceManager { pg_pool: Arc::new(pg_pool) }
+    pub fn new(pg_pool: Arc<PgPool>) -> Self {
+        AssetServiceManager { pg_pool }
     }
 }
 
@@ -226,9 +226,6 @@ impl AssetService for AssetServiceManager {
 
     async fn get_paginated_assets(&self, request: Request<GetPaginatedAssetsRequest>) -> Result<Response<GetPaginatedAssetsResponse>, Status> {
         trace_request!(request, "get_paginated_assets");
-        let request_id = generate_request_id();
-        let span = info_span!("gRPC", request_id = request_id);
-        let _guard = span.enter();
 
         let req = request.into_inner();
         if req.offset < 0 || req.limit < 0 || (req.offset == 0 && req.limit == 0) {

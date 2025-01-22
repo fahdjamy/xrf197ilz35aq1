@@ -14,7 +14,7 @@ message CreateContractRequest {
 }
 
 message CreateContractResponse {
-  bool contract_id = 1;
+  string contract_id = 1;
 }
 
 
