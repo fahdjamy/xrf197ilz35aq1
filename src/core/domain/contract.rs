@@ -51,7 +51,7 @@ impl Contract {
             return Err(DomainError::InvalidArgument("accepted_currency should contain at least one currency".to_string()));
         }
         if min_price <= 0.0 {
-            return Err(DomainError::InvalidArgument("min_price greater than 0.0".to_string()));
+            return Err(DomainError::InvalidArgument("min_price must be greater than 0.0".to_string()));
         }
 
         let id = generate_unique_key(DOMAIN_KEY_SIZE);

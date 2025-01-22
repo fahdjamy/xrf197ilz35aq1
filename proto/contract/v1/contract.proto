@@ -5,12 +5,11 @@ package proto.contract.v1;
 message CreateContractRequest {
   string asset_id = 1;
   string summary = 2;
-  string criteria = 3;
-  int32 min_price = 4;
-  string details = 5;
-  bool anonymous_buyers = 6;
-  string user_finger_print = 7;
-  repeated string accepted_currencies = 8;
+  float min_price = 3;
+  string details = 4;
+  bool anonymous_buyers = 5;
+  string user_finger_print = 6;
+  repeated string accepted_currencies = 7;
 }
 
 message CreateContractResponse {

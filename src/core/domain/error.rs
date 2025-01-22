@@ -31,6 +31,7 @@ pub enum DatabaseError {
     NotFound,
     UniqueViolation,
     ForeignKeyViolation,
+    RecordExists(String),
     // ... other specific database errors
     Configuration(String), // To capture configuration errors
     Tls(String),           // To capture TLS errors

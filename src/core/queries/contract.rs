@@ -50,6 +50,16 @@ impl Display for DbContract {
 #[tracing::instrument(skip(pg_pool, contract))]
 pub async fn create_contract(pg_pool: &PgPool, contract: Contract) -> Result<bool, DatabaseError> {
     tracing::info!("creating contract :: contractId={} :: assetId={}", contract.id, contract.asset_id);
+    let contract_asset_exists = check_if_contract_exits_for_asset(pg_pool, &contract.asset_id)
+        .await
+        .map_err(|err| {
+            tracing::error!("failed to create contract: {:?}", err);
+            return err;
+        })?;
+    if contract_asset_exists {
+        return Err(DatabaseError::RecordExists("contract for given asset id exists".to_string()));
+    }
+
     let db_contract: DbContract = DbContract::from(contract);
     let result = sqlx::query!(
         "
@@ -85,4 +95,25 @@ pub async fn create_contract(pg_pool: &PgPool, contract: Contract) -> Result<boo
         .execute(pg_pool)
         .await?;
     Ok(result.rows_affected() == 1)
+}
+
+#[tracing::instrument(skip(pg_pool))]
+async fn check_if_contract_exits_for_asset(pg_pool: &PgPool, asset_id: &str) -> Result<bool, DatabaseError> {
+    tracing::info!("checking for contract with assetId={}", asset_id);
+    // EXISTS is a SQL operator (a keyword), not a field. It's used to test for the existence of rows in a subquery.
+    // The 1 in SELECT 1 is an arbitrary placeholder value that indicates the existence of a row without needing to retrieve the actual row data.
+    let result = sqlx::query!(
+        r#"
+        SELECT EXISTS (
+            SELECT 1
+            FROM contract
+            WHERE asset_id=$1
+        ) AS "exists!"
+        "#,
+        asset_id
+    )
+        .fetch_one(pg_pool)
+        .await?;
+
+    Ok(result.exists)
 }

@@ -1,7 +1,7 @@
 use crate::common::REQUEST_ID_KEY;
 use crate::core::{create_contract, find_asset_by_id, Contract, Currency, DatabaseError};
 use crate::server::grpc::asset::contract_service_server::ContractService;
-use crate::server::grpc::asset::{CreateContractRequest, CreateContractResponse, CreateResponse};
+use crate::server::grpc::asset::{CreateContractRequest, CreateContractResponse};
 use crate::server::grpc::interceptors::trace_request;
 use rayon::prelude::*;
 use sqlx::PgPool;
@@ -55,8 +55,11 @@ impl ContractService for ContractServiceManager {
             DatabaseError::InvalidArgument(err) => {
                 Status::invalid_argument(err.to_string())
             },
+            DatabaseError::RecordExists(msg) => {
+                Status::already_exists(msg)
+            },
             _ => {
-                error!("message=Failed to create new asset contract :: err= {:?}", err);
+                error!("message=failed to create new asset contract :: err={:?}", err);
                 Status::internal("server error")
             }
         })?;
