@@ -1,3 +1,8 @@
+use sqlx::encode::IsNull;
+use sqlx::error::BoxDynError;
+use sqlx::postgres::PgTypeInfo;
+use sqlx::{Database, TypeInfo};
+use sqlx::{Decode, Encode, Postgres, Type};
 use strum_macros::EnumString;
 
 #[derive(
@@ -8,8 +13,10 @@ use strum_macros::EnumString;
     Eq,
     Hash,
     EnumString,
-    strum_macros::Display
+    strum_macros::Display,
+    Type
 )]
+#[sqlx(type_name = "currency_enum")]
 pub enum Currency {
     #[strum(serialize = "USD", serialize = "usd", serialize = "US Dollar", serialize = "us dollar")]
     USD,
@@ -145,7 +152,7 @@ impl Currency {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use crate::core::Currency;
     use std::str::FromStr;
     use strum::ParseError;
 
