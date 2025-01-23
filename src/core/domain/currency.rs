@@ -109,6 +109,57 @@ pub enum Currency {
     BinanceCoin,
 }
 
+// Vec<Currency> type wrapper
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct CurrencyList(pub Vec<Currency>);
+
+// 2. Implement Type for Vec<Currency> to represent currency_enum[]
+impl Type<Postgres> for CurrencyList {
+    fn type_info() -> PgTypeInfo {
+        PgTypeInfo::with_name("_currency_enum") // Note the leading underscore for array types in PostgreSQL
+    }
+
+    fn compatible(ty: &PgTypeInfo) -> bool {
+        ty.name() == "_currency_enum"
+    }
+}
+
+// 3. Implement Encode for Vec<Currency> to handle serialization to PostgreSQL
+impl<'q> Encode<'q, Postgres> for CurrencyList {
+    fn encode_by_ref(&self, buf: &mut <Postgres as Database>::ArgumentBuffer<'q>) -> Result<IsNull, BoxDynError> {
+        let mut encoder = sqlx::postgres::types::PgRecordEncoder::new(buf);
+        for currency in &self.0 {
+            encoder.encode(currency).expect("failed to encode currency");
+        }
+        encoder.finish();
+        Ok(IsNull::No)
+    }
+}
+
+// 4. Implement Decode for Vec<Currency> to handle deserialization from PostgresSQL
+impl<'r> Decode<'r, Postgres> for CurrencyList {
+    fn decode(value: sqlx::postgres::PgValueRef<'r>) -> Result<Self, BoxDynError> {
+        let mut decoder = sqlx::postgres::types::PgRecordDecoder::new(value)?;
+        let mut currencies = Vec::new();
+
+        // Loop until try_decode returns None
+        loop {
+            let maybe_currency: Result<Option<Currency>, BoxDynError> = decoder.try_decode();
+
+            match maybe_currency {
+                Ok(Some(currency)) => {
+                    currencies.push(currency);
+                },
+                Ok(None) => {
+                    break;
+                }
+                Err(e) => return Err(e.into()),
+            }
+        }
+        Ok(CurrencyList(currencies))
+    }
+}
+
 impl Currency {
     pub fn is_crypto(&self) -> bool {
         matches!(
