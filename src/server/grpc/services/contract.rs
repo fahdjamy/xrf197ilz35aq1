@@ -26,7 +26,7 @@ impl ContractService for ContractServiceManager {
     async fn create_contract(&self, request: Request<CreateContractRequest>) -> Result<Response<CreateContractResponse>, Status> {
         trace_request!(request, "create_contract");
         let req = request.into_inner();
-        info!("creating new contract :: (name={} -> symbol={})", &req.asset_id, &req.asset_id);
+        info!("creating new contract :: (assetId={})", &req.asset_id);
 
         let saved_asset = find_asset_by_id(&req.asset_id, &self.pg_pool).await
             .map_err(|err| match err {
