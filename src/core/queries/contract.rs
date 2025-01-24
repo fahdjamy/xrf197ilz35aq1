@@ -2,6 +2,7 @@ use crate::core::{Contract, CurrencyList, DatabaseError};
 use chrono::{DateTime, Utc};
 use sqlx::PgPool;
 use std::fmt::Display;
+use tracing::info;
 
 #[derive(Debug)]
 struct DbContract {
@@ -61,6 +62,7 @@ pub async fn create_contract(pg_pool: &PgPool, contract: Contract) -> Result<boo
     }
 
     let db_contract: DbContract = DbContract::from(contract);
+    info!("creating contract :: currencyList={}", db_contract.accepted_currency);
     let result = sqlx::query!(
         r#"
         INSERT INTO contract (

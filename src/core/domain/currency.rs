@@ -3,6 +3,7 @@ use sqlx::error::BoxDynError;
 use sqlx::postgres::PgTypeInfo;
 use sqlx::{Database, TypeInfo};
 use sqlx::{Decode, Encode, Postgres, Type};
+use std::fmt::{Display, Formatter};
 use strum_macros::EnumString;
 
 #[derive(
@@ -13,7 +14,6 @@ use strum_macros::EnumString;
     Eq,
     Hash,
     EnumString,
-    strum_macros::Display,
     Type
 )]
 #[sqlx(type_name = "currency_enum")]
@@ -113,6 +113,23 @@ pub enum Currency {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CurrencyList(pub Vec<Currency>);
 
+impl Display for CurrencyList {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        if self.0.is_empty() {
+            write!(f, "currencies []")
+        } else {
+            let mut currencies_str = String::new();
+            for (i, currency) in self.0.iter().enumerate() {
+                currencies_str.push_str(&format!("{}", currency));
+                if i < self.0.len() - 1 {
+                    currencies_str.push_str(", ");
+                }
+            }
+            write!(f, "[{}]", currencies_str)
+        }
+    }
+}
+
 // 2. Implement Type for Vec<Currency> to represent currency_enum[]
 impl Type<Postgres> for CurrencyList {
     fn type_info() -> PgTypeInfo {
@@ -197,6 +214,32 @@ impl Currency {
             Currency::CARDANO => "ADA",
             Currency::ETHEREUM => "ETH",
             Currency::BinanceCoin => "BNB",
+        }
+    }
+}
+
+impl Display for Currency {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Currency::USD => write!(f, "USD"),
+            Currency::EUR => write!(f, "EUR"),
+            Currency::XRP => write!(f, "XRP"),
+            Currency::RUB => write!(f, "RUB"),
+            Currency::ARS => write!(f, "ARS"),
+            Currency::BRL => write!(f, "BRL"),
+            Currency::CNY => write!(f, "CNY"),
+            Currency::GBP => write!(f, "GBP"),
+            Currency::MXN => write!(f, "MXN"),
+            Currency::QAR => write!(f, "QAR"),
+            Currency::JPY => write!(f, "JPY"),
+            Currency::DOGE => write!(f, "DOGE"),
+            Currency::XRFQ => write!(f, "XRFQ"),
+            Currency::SOLANA => write!(f, "SOL"),
+            Currency::BITCOIN => write!(f, "BTC"),
+            Currency::TETHER => write!(f, "USDT"),
+            Currency::CARDANO => write!(f, "ADA"),
+            Currency::ETHEREUM => write!(f, "ETH"),
+            Currency::BinanceCoin => write!(f, "BNB"),
         }
     }
 }
