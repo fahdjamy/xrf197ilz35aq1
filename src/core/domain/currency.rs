@@ -90,23 +90,55 @@ pub enum Currency {
         serialize = "xrfq"
     )] // Assuming this is a made-up or very specific currency code
     XRFQ,
-    #[strum(serialize = "SOL", serialize = "sol", serialize = "Solana", serialize = "solana")]
-    SOLANA,
-    #[strum(serialize = "BTC", serialize = "btc", serialize = "Bitcoin", serialize = "bitcoin")]
-    BITCOIN,
-    #[strum(serialize = "ETH", serialize = "eth", serialize = "Ethereum", serialize = "ethereum")]
-    ETHEREUM,
-    #[strum(serialize = "ADA", serialize = "ada", serialize = "Cardano", serialize = "cardano")]
-    CARDANO,
-    #[strum(serialize = "USDT", serialize = "usdt", serialize = "Tether", serialize = "tether")]
-    TETHER,
+    #[strum(
+        serialize = "SOL",
+        serialize = "sol",
+        serialize = "Solana",
+        serialize = "solana",
+        serialize = "SOLANA"
+    )]
+    SOL,
+    #[strum(
+        serialize = "BTC",
+        serialize = "btc",
+        serialize = "Bitcoin",
+        serialize = "bitcoin",
+        serialize = "BITCOIN"
+    )]
+    BTC,
+    #[strum(
+        serialize = "ETH",
+        serialize = "eth",
+        serialize = "Ethereum",
+        serialize = "ethereum",
+        serialize = "ETHEREUM"
+    )]
+    ETH,
+    #[strum(
+        serialize = "ADA",
+        serialize = "ada",
+        serialize = "Cardano",
+        serialize = "cardano",
+        serialize = "CARDANO"
+    )]
+    ADA,
+    #[strum(
+        serialize = "USDT",
+        serialize = "usdt",
+        serialize = "Tether",
+        serialize = "tether",
+        serialize = "TETHER"
+    )]
+    USDT,
     #[strum(
         serialize = "BNB",
         serialize = "bnb",
         serialize = "Binance Coin",
-        serialize = "binance coin"
+        serialize = "binance coin",
+        serialize = "BNB Coin",
+        serialize = "BinanceCoin"
     )]
-    BinanceCoin,
+    BNB,
 }
 
 // Vec<Currency> type wrapper
@@ -141,38 +173,24 @@ impl Type<Postgres> for CurrencyList {
     }
 }
 
-// 3. Implement Encode for Vec<Currency> to handle serialization to PostgreSQL
+// 3. Implement Encode for Vec<Currency> to handle serialization to PostgresSQL
 impl<'q> Encode<'q, Postgres> for CurrencyList {
     fn encode_by_ref(&self, buf: &mut <Postgres as Database>::ArgumentBuffer<'q>) -> Result<IsNull, BoxDynError> {
-        let mut encoder = sqlx::postgres::types::PgRecordEncoder::new(buf);
-        for currency in &self.0 {
-            encoder.encode(currency).expect("failed to encode currency");
-        }
-        encoder.finish();
-        Ok(IsNull::No)
+        // Use sqlx's array encoding to directly encode the Vec<Currency>
+        // directly encode the inner self.0 (which is a Vec<Currency>) using its own Encode 
+        // implementation. Vec already implements Encode for arrays, 
+        // and Currency implements Type (which transitively provides Encode and Decode).
+        <Vec<Currency> as Encode<'_, Postgres>>::encode(self.0.clone(), buf)
     }
 }
 
 // 4. Implement Decode for Vec<Currency> to handle deserialization from PostgresSQL
 impl<'r> Decode<'r, Postgres> for CurrencyList {
     fn decode(value: sqlx::postgres::PgValueRef<'r>) -> Result<Self, BoxDynError> {
-        let mut decoder = sqlx::postgres::types::PgRecordDecoder::new(value)?;
-        let mut currencies = Vec::new();
-
-        // Loop until try_decode returns None
-        loop {
-            let maybe_currency: Result<Option<Currency>, BoxDynError> = decoder.try_decode();
-
-            match maybe_currency {
-                Ok(Some(currency)) => {
-                    currencies.push(currency);
-                },
-                Ok(None) => {
-                    break;
-                }
-                Err(e) => return Err(e.into()),
-            }
-        }
+        // Decode directly into a Vec<Currency> using sqlx's built-in array decoding
+        // Sqlx has built-in support for decoding arrays into Vec when the element type implements Decode.
+        let currencies: Vec<Currency> = Decode::<Postgres>::decode(value)?;
+        // Wrap the Vec<Currency> in CurrencyList
         Ok(CurrencyList(currencies))
     }
 }
@@ -184,12 +202,12 @@ impl Currency {
             Currency::XRP
                 | Currency::XRFQ
                 | Currency::DOGE
-                | Currency::SOLANA
-                | Currency::TETHER
-                | Currency::CARDANO
-                | Currency::BITCOIN
-                | Currency::ETHEREUM
-                | Currency::BinanceCoin
+                | Currency::SOL
+                | Currency::USDT
+                | Currency::ADA
+                | Currency::BTC
+                | Currency::ETH
+                | Currency::BNB
         )
     }
 
@@ -208,12 +226,12 @@ impl Currency {
             Currency::JPY => "JPY",
             Currency::DOGE => "DOGE",
             Currency::XRFQ => "XRFQ",
-            Currency::SOLANA => "SOL",
-            Currency::BITCOIN => "BTC",
-            Currency::TETHER => "USDT",
-            Currency::CARDANO => "ADA",
-            Currency::ETHEREUM => "ETH",
-            Currency::BinanceCoin => "BNB",
+            Currency::SOL => "SOL",
+            Currency::BTC => "BTC",
+            Currency::USDT => "USDT",
+            Currency::ADA => "ADA",
+            Currency::ETH => "ETH",
+            Currency::BNB => "BNB",
         }
     }
 }
@@ -234,12 +252,12 @@ impl Display for Currency {
             Currency::JPY => write!(f, "JPY"),
             Currency::DOGE => write!(f, "DOGE"),
             Currency::XRFQ => write!(f, "XRFQ"),
-            Currency::SOLANA => write!(f, "SOL"),
-            Currency::BITCOIN => write!(f, "BTC"),
-            Currency::TETHER => write!(f, "USDT"),
-            Currency::CARDANO => write!(f, "ADA"),
-            Currency::ETHEREUM => write!(f, "ETH"),
-            Currency::BinanceCoin => write!(f, "BNB"),
+            Currency::SOL => write!(f, "SOL"),
+            Currency::BTC => write!(f, "BTC"),
+            Currency::USDT => write!(f, "USDT"),
+            Currency::ADA => write!(f, "ADA"),
+            Currency::ETH => write!(f, "ETH"),
+            Currency::BNB => write!(f, "BNB"),
         }
     }
 }
@@ -260,7 +278,7 @@ mod tests {
             ("XRP", Ok(Currency::XRP)),
             ("xrp", Ok(Currency::XRP)),
             ("Ripple", Ok(Currency::XRP)),
-            ("Cardano", Ok(Currency::CARDANO)),
+            ("Cardano", Ok(Currency::ADA)),
             ("Argentine Peso", Ok(Currency::ARS)),
         ];
 
