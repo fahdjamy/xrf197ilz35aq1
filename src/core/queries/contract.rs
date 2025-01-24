@@ -1,4 +1,4 @@
-use crate::core::{Contract, DatabaseError};
+use crate::core::{Contract, CurrencyList, DatabaseError};
 use chrono::{DateTime, Utc};
 use sqlx::PgPool;
 use std::fmt::Display;
@@ -16,7 +16,7 @@ struct DbContract {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub anonymous_buyer_only: bool,
-    pub accepted_currency: Vec<String>, // Change to Vec<String> for database compatibility
+    pub accepted_currency: CurrencyList, // Change to Vec<String> for database compatibility
 }
 
 impl From<Contract> for DbContract {
@@ -33,10 +33,10 @@ impl From<Contract> for DbContract {
             update_count: contract.update_count,
             version: contract.version.to_string(),
             anonymous_buyer_only: contract.anonymous_buyer_only,
-            accepted_currency: contract.accepted_currency
+            accepted_currency: CurrencyList(contract.accepted_currency
                 .into_iter()
-                .map(|c| c.db_string().to_string())
-                .collect(), // Convert to Vec<String>
+                .map(|c| c)
+                .collect()), // Convert to Vec<String>
         }
     }
 }
@@ -62,7 +62,7 @@ pub async fn create_contract(pg_pool: &PgPool, contract: Contract) -> Result<boo
 
     let db_contract: DbContract = DbContract::from(contract);
     let result = sqlx::query!(
-        "
+        r#"
         INSERT INTO contract (
                       id,
                       content,
@@ -78,7 +78,7 @@ pub async fn create_contract(pg_pool: &PgPool, contract: Contract) -> Result<boo
                       anonymous_buyer_only
         )
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-        ",
+        "#,
         db_contract.id,
         db_contract.content,
         db_contract.summary,
@@ -89,7 +89,7 @@ pub async fn create_contract(pg_pool: &PgPool, contract: Contract) -> Result<boo
         db_contract.updated_by,
         db_contract.updated_at,
         db_contract.update_count,
-        &db_contract.accepted_currency,
+        &db_contract.accepted_currency as &CurrencyList,
         db_contract.anonymous_buyer_only,
     )
         .execute(pg_pool)
