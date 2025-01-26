@@ -41,5 +41,5 @@ impl Application {
 
 pub fn get_connection_pool(configuration: &DatabaseConfig) -> PgPool {
     PgPoolOptions::new()
-        .connect_lazy_with(configuration.postgres.connect_to_database())
+        .connect_lazy_with(configuration.postgres.connect_to_database(&configuration.postgres.name))
 }

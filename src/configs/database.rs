@@ -36,7 +36,7 @@ impl Postgres {
             .password(&self.password.expose_secret())
     }
 
-    pub fn connect_to_database(&self) -> PgConnectOptions {
-        self.connect_to_instance().database(&self.name)
+    pub fn connect_to_database(&self, database_name: &str) -> PgConnectOptions {
+        self.connect_to_instance().database(database_name)
     }
 }
