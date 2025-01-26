@@ -26,6 +26,8 @@ impl Display for DomainError {
     }
 }
 
+impl std::error::Error for DomainError {}
+
 #[derive(Debug)]
 pub enum DatabaseError {
     NotFound,
