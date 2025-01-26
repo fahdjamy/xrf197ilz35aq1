@@ -1,11 +1,48 @@
 use sqlx::{Connection, Executor, PgConnection, PgPool};
-use xrf1::configs::DatabaseConfig;
+use std::sync::{Arc, Mutex};
+use uuid::Uuid;
+use xrf1::configs::{load_config, DatabaseConfig};
 
-async fn configure_database(config: &DatabaseConfig, db_name: &str) -> PgPool {
-    let mut connection = create_pg_connection(&config).await;
+pub struct TestApp {
+    db_name: String,
+    pub db_pool: PgPool,
+    // Arc: Allow shared ownership of the pg_conn across multiple threads
+    // Mutex: Provide exclusive access to pg_conn. Only 1 task can hold the lock & access/mutate the pg_conn at a time
+    pg_conn: Arc<Mutex<PgConnection>>,
+}
+
+impl TestApp {
+    pub async fn drop_db(&self) {
+        drop_database(self.pg_conn.clone(), &self.db_name).await;
+    }
+}
+
+pub async fn start_test_app() -> TestApp {
+    let configs = load_config()
+        .expect("Failed to load config");
+
+    // create the PgConnection and wrap it with Arc<Mutex<>>
+    let pg_conn = Arc::new(Mutex::new(create_pg_connection(&configs.database).await));
+
+    let db_name = Uuid::new_v4().to_string();
+    let pg_pool = configure_database(pg_conn.clone(), &configs.database, &db_name)
+        .await;
+
+    TestApp {
+        db_name,
+        pg_conn,
+        db_pool: pg_pool,
+    }
+}
+
+pub async fn configure_database(connection: Arc<Mutex<PgConnection>>,
+                                config: &DatabaseConfig,
+                                db_name: &str) -> PgPool {
 
     // create a new database based on the db name provided (db_name)
     connection
+        .lock()
+        .expect("Failed to acquire lock connection to database instance :: create-database")
         .execute(format!(r#"CREATE DATABASE "{}";"#, db_name).as_str())
         .await
         .expect("Failed to create database.");
@@ -32,8 +69,10 @@ async fn create_pg_connection(config: &DatabaseConfig) -> PgConnection {
     connection
 }
 
-async fn drop_database(mut connection: PgConnection, db_name: &str) {
+async fn drop_database(connection: Arc<Mutex<PgConnection>>, db_name: &str) {
     connection
+        .lock()
+        .expect("Failed to acquire lock connection to database instance :: drop-database")
         .execute(
             format!(r#"
             DROP DATABASE "{}";
