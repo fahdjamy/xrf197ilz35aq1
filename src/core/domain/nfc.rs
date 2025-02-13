@@ -125,6 +125,9 @@ fn generate_certificate(asset_id: &str) -> Result<String, String> {
 #[cfg(test)]
 mod tests {
     use crate::core::domain::nfc::generate_certificate;
+    use std::collections::HashSet;
+    use std::sync::mpsc;
+    use std::thread;
 
     #[test]
     fn test_generate_certificate() {
@@ -138,6 +141,28 @@ mod tests {
 
     #[test]
     fn test_thread_safety() {
+        let num_threads = 10;
         let asset_id = "1234";
+        let ids_per_thread = 100;
+        let (tx, rx) = mpsc::channel();
+
+        for _ in 0..num_threads {
+            let tx = tx.clone();
+            thread::spawn(move || {
+                for _ in 0..ids_per_thread {
+                    let cert_id = generate_certificate(asset_id);
+                    assert!(cert_id.is_ok());
+                    tx.send(cert_id.unwrap()).unwrap();
+                }
+            });
+        }
+
+        let mut all_ids = HashSet::new();
+        for _ in 0..(num_threads * ids_per_thread) {
+            let id = rx.recv().unwrap();
+            assert!(!all_ids.contains(&id), "Duplicate ID found: {}", id);
+            all_ids.insert(id);
+        }
+        assert_eq!(all_ids.len(), num_threads * ids_per_thread);
     }
 }
