@@ -45,9 +45,30 @@ impl ContractService for ContractServiceManager {
         let min_price = req.min_price as f64;
         let user_fp = req.user_finger_print;
         let anonymous_buyers_only = req.anonymous_buyers;
+        let royalty_percentage = req.royalty_percentage.unwrap_or(0.0);
+        let royalty_receiver = match req.royalty_receiver {
+            None => {
+                // if royalty_receiver is not set and royalty_percentage is > 0.0, then set
+                // receiver to user_fp that's creating the contract
+                if royalty_percentage > 0.0 {
+                    user_fp.clone().to_string()
+                } else {
+                    "".to_string()
+                }
+            }
+            Some(receiver_user_id) => { receiver_user_id }
+        };
         let accepted_currencies = process_accepted_currencies(req.accepted_currencies)
             .map_err(|er| Status::invalid_argument(er.to_string()))?;
-        let contract = Contract::new(asset_id, details, req.summary, user_fp, min_price, anonymous_buyers_only, accepted_currencies)
+        let contract = Contract::new(asset_id,
+                                     details,
+                                     req.summary,
+                                     user_fp.clone(),
+                                     min_price,
+                                     anonymous_buyers_only,
+                                     royalty_percentage,
+                                     royalty_receiver,
+                                     accepted_currencies)
             .map_err(|err| Status::invalid_argument(err.to_string()))?;
         let contract_id = contract.id.clone();
 

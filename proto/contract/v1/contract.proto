@@ -9,7 +9,9 @@ message CreateContractRequest {
   string details = 4;
   bool anonymous_buyers = 5;
   string user_finger_print = 6;
-  repeated string accepted_currencies = 7;
+  optional string royalty_receiver = 7;
+  optional float royalty_percentage = 8;
+  repeated string accepted_currencies = 9;
 }
 
 message CreateContractResponse {

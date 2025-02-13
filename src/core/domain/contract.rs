@@ -26,10 +26,12 @@ pub struct Contract {
     pub asset_id: String,
     pub update_count: i32,
     pub updated_by: String,
+    pub royalty_percentage: f32,
     pub version: ContractVersion,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub anonymous_buyer_only: bool,
+    pub royalty_receiver_id: String,
     pub accepted_currency: HashSet<Currency>,
 }
 
@@ -46,7 +48,18 @@ impl Contract {
                user_fp: String,
                min_price: f64,
                anonymous_buyer: bool,
+               royalty_percentage: f32,
+               royalty_receiver_id: String,
                accepted_currency: HashSet<Currency>) -> Result<Self, DomainError> {
+        if royalty_percentage < 0.0 {
+            return Err(DomainError::InvalidArgument("royalty percentage can not be less than 0.0".to_string()));
+        }
+        if !royalty_receiver_id.is_empty() && royalty_percentage == 0.0 {
+            return Err(DomainError::InvalidArgument("royalty percentage can not be less than 0.0 if royalty receiver is specified".to_string()));
+        }
+        if royalty_receiver_id.is_empty() && royalty_percentage > 0.0 {
+            return Err(DomainError::InvalidArgument("if royalty percentage is set, royalty receiver can't be empty".to_string()));
+        }
         if accepted_currency.is_empty() {
             return Err(DomainError::InvalidArgument("accepted_currency should contain at least one currency".to_string()));
         }
@@ -63,7 +76,9 @@ impl Contract {
             min_price,
             update_count: 0,
             accepted_currency,
+            royalty_percentage,
             updated_by: user_fp,
+            royalty_receiver_id,
             created_at: Utc::now(),
             updated_at: Utc::now(),
             version: ContractVersion::V1,

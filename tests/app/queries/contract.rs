@@ -37,8 +37,12 @@ fn create_test_contract(asset_id: String) -> Result<Contract, DomainError> {
     // Create a sample DbContract
     Contract::new(asset_id,
                   "11".to_string(),
-                  "summary".to_string(), "user_fp".to_string(),
+                  "summary".to_string(),
+                  "user_fp".to_string(),
                   20.0,
                   false,
-                  currency_list)
+                  3.0,
+                  "user_fp".to_string(),
+                  currency_list,
+    )
 }
