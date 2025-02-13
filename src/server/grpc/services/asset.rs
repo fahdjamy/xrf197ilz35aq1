@@ -98,6 +98,7 @@ impl AssetService for AssetServiceManager {
         info!("creating new asset :: (name={} -> symbol={})", &req.name, &req.symbol);
         let asset = Asset::new(req.name, req.symbol, "req.".parse().unwrap(), req.description, req.organization)
             .map_err(|e| match e {
+                DomainError::ServerError(err) => Status::internal(err.to_string()),
                 DomainError::DatabaseError(err) => Status::internal(err.to_string()),
                 DomainError::NotFoundError(err) => Status::not_found(err.to_string()),
                 DomainError::DuplicateError(err) => Status::already_exists(err.to_string()),

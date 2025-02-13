@@ -3,6 +3,7 @@ use std::fmt::Display;
 
 #[derive(Debug)]
 pub enum DomainError {
+    ServerError(String),
     NotFoundError(String),
     DatabaseError(String),
     DuplicateError(String),
@@ -17,6 +18,7 @@ impl Display for DomainError {
             // ref creates a reference instead of moving the value
             // ref message creates an immutable reference to the String inside the DomainError,
             // allowing you to access string without taking ownership
+            DomainError::ServerError(ref msg) => write!(f, "{}", msg),
             DomainError::NotFoundError(ref msg) => write!(f, "{}", msg),
             DomainError::DatabaseError(ref msg) => write!(f, "{}", msg),
             DomainError::DuplicateError(ref msg) => write!(f, "{}", msg),
