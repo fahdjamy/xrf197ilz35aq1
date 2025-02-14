@@ -3,6 +3,7 @@ use crate::core::DomainError;
 use base64::engine::general_purpose;
 use base64::Engine;
 use chrono::{DateTime, Utc};
+use getrandom::getrandom;
 use ring::rand::SecureRandom;
 use sha2::{Digest, Sha512};
 use std::fmt::Display;
@@ -11,15 +12,14 @@ use std::time::SystemTime;
 
 #[derive(Debug, Clone)]
 pub struct NFC {
-    id: String,
-    cert: String,
-    asset_id: String,
-    transferable: bool,
-    created_at: DateTime<Utc>,
+    pub id: String,
+    pub cert: String,
+    pub asset_id: String,
+    pub created_at: DateTime<Utc>,
 }
 
 impl NFC {
-    pub fn new(asset_id: String, transferable: bool) -> Result<Self, DomainError> {
+    pub fn new(asset_id: String) -> Result<Self, DomainError> {
         let cert_id = generate_unique_key(DOMAIN_KEY_SIZE);
         let certificate = generate_certificate(&asset_id)
             .map_err(|err| {
@@ -29,7 +29,6 @@ impl NFC {
         Ok(Self {
             asset_id,
             id: cert_id,
-            transferable,
             created_at: now,
             cert: certificate,
         })
@@ -38,8 +37,8 @@ impl NFC {
 
 impl Display for NFC {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Certificate: Id: {}, AssetId: {}, Transferable: {}: Created At: {}",
-               self.id, self.asset_id, self.transferable, self.created_at)
+        write!(f, "Certificate: Id: {}, AssetId: {}, Created At: {}",
+               self.id, self.asset_id, self.created_at)
     }
 }
 
@@ -76,7 +75,7 @@ impl Display for NFC {
 fn generate_certificate(asset_id: &str) -> Result<String, String> {
     // Use an Arc<Mutex<>> to make the counter thread-safe.
     lazy_static::lazy_static! {
-        static ref GLOBAL_NFT_COUNTER: Arc<Mutex<u64>> = Arc::new(Mutex::new(0));
+        static ref GLOBAL_NFT_COUNTER: Arc<Mutex<u128>> = Arc::new(Mutex::new(0));
     }
 
     // 1. Get a high-precision timestamp (nanoseconds).
@@ -94,6 +93,12 @@ fn generate_certificate(asset_id: &str) -> Result<String, String> {
         return format!("Failed to generate random bytes with ring: err={}", err);
     })?;
 
+    let mut salt = vec![0u8; 32];
+    let rng = ring::rand::SystemRandom::new();
+    rng.fill(&mut salt).map_err(|err| {
+        return format!("Failed to generate random bytes with for salt: err={}", err);
+    })?;
+
     let mut counter_guard = GLOBAL_NFT_COUNTER
         .lock()
         .map_err(|err| {
@@ -104,13 +109,13 @@ fn generate_certificate(asset_id: &str) -> Result<String, String> {
     *counter_guard += 1;
 
     // 2. Combine timestamp, random bytes, and asset_id.
+    let salt = generate_salt(asset_id)?; // Salt to make data more unique
     let combined_data = format!(
-        "{}*{}**{}**{}*{}",
+        "{}*{}**{}*{}",
         timestamp_nanos,
         hex::encode(random_bytes), //hex encode for better formatting
-        asset_id,
         counter_val,
-        "XRF-V1" // Salt/version string
+        salt
     );
 
     // 3. Hash using SHA-256 (SHA-512 is slow and best for 64-bit OS).
@@ -120,6 +125,14 @@ fn generate_certificate(asset_id: &str) -> Result<String, String> {
 
     // 4. encode using Base64 for URL-safety.
     Ok(general_purpose::URL_SAFE_NO_PAD.encode(hash_result))
+}
+
+fn generate_salt(asset_id: &str) -> Result<String, String> {
+    let mut salt_bytes = [0u8; 16];
+    getrandom(&mut salt_bytes).map_err(|err| {
+        return format!("Failed to generate salt: err={}", err);
+    })?;
+    Ok(format!("{}_{}", asset_id, general_purpose::URL_SAFE_NO_PAD.encode(salt_bytes)))
 }
 
 #[cfg(test)]

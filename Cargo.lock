@@ -3563,6 +3563,7 @@ dependencies = [
  "base64 0.22.1",
  "chrono",
  "config",
+    "getrandom 0.2.15",
  "hex",
  "lazy_static",
  "prost",
