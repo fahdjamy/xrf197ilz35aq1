@@ -1,17 +1,26 @@
-use crate::core::{DatabaseError, NFC};
+use crate::core::{DatabaseError, PgTransaction, NFC};
 use chrono::{DateTime, Utc};
-use sqlx::{PgPool, Postgres, Transaction};
+use sqlx::PgPool;
+use std::fmt::{Display, Formatter};
 use tracing::info;
 
 #[derive(Debug, Clone)]
-struct NFCTrail {
-    nfc_id: String,
+pub struct NFCTrail {
+    pub nfc_id: String,
     user_fp: String,
     asset_id: String,
     transferred_on: DateTime<Utc>,
 }
 
-type PgTransaction = Transaction<'static, Postgres>;
+impl Display for NFCTrail {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "nfc '{}' transferred on - '{}'",
+            self.nfc_id, self.transferred_on
+        )
+    }
+}
 
 impl NFCTrail {
     fn new(
@@ -106,4 +115,20 @@ async fn create_nfc_trail(
     .execute(&mut **transaction)
     .await?;
     Ok(result.rows_affected() == 1)
+}
+
+#[tracing::instrument(skip(nfc_id, pool))]
+pub async fn get_nfc_trails_by_nfc_id(
+    nfc_id: &str,
+    pool: &PgPool,
+) -> Result<Vec<NFCTrail>, DatabaseError> {
+    info!("Getting nfc trail history by nfc_id={}", nfc_id);
+    let rows = sqlx::query_as!(
+        NFCTrail,
+        "SELECT * FROM nfc_asset_trail WHERE nfc_id = $1",
+        nfc_id
+    )
+    .fetch_all(pool)
+    .await?;
+    Ok(rows)
 }
