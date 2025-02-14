@@ -1,6 +1,7 @@
 mod ordering;
 mod asset;
 mod contract;
+mod nfc;
 
 pub use asset::{create_new_asset,
                 delete_asset_by_id,
@@ -11,4 +12,5 @@ pub use asset::{create_new_asset,
                 get_all_assets,
                 update_asset};
 pub use contract::create_contract;
+pub use nfc::create_nfc;
 pub use ordering::OrderType;

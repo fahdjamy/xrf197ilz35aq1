@@ -40,7 +40,7 @@ ring = "0.17.8"
 hex = "0.4.3"
 sha2 = "0.10.8"
 base64 = "0.22.1"
-getrandom = "0.2.15"
+getrandom = "0.3.1"
 
 [dependencies.sqlx]
 version = "0.8.2"

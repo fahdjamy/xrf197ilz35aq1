@@ -3,7 +3,7 @@ use crate::core::DomainError;
 use base64::engine::general_purpose;
 use base64::Engine;
 use chrono::{DateTime, Utc};
-use getrandom::getrandom;
+use getrandom;
 use ring::rand::SecureRandom;
 use sha2::{Digest, Sha512};
 use std::fmt::Display;
@@ -129,7 +129,7 @@ fn generate_certificate(asset_id: &str) -> Result<String, String> {
 
 fn generate_salt(asset_id: &str) -> Result<String, String> {
     let mut salt_bytes = [0u8; 16];
-    getrandom(&mut salt_bytes).map_err(|err| {
+    getrandom::fill(&mut salt_bytes).map_err(|err| {
         return format!("Failed to generate salt: err={}", err);
     })?;
     Ok(format!("{}_{}", asset_id, general_purpose::URL_SAFE_NO_PAD.encode(salt_bytes)))
