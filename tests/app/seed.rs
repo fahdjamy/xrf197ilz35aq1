@@ -2,10 +2,13 @@ use sqlx::PgPool;
 use uuid::Uuid;
 use xrf1::core::{create_new_asset, Asset, DomainError};
 
-pub async fn create_and_save_contract(pg: &PgPool) -> Result<Asset, Box<dyn std::error::Error>> {
+pub async fn create_and_save_contract(
+    user_fp: String,
+    pg: &PgPool,
+) -> Result<Asset, Box<dyn std::error::Error>> {
     let asset = create_asset()?;
 
-    create_new_asset(&asset, &pg).await?;
+    create_new_asset(&asset, user_fp, &pg).await?;
 
     Ok(asset)
 }

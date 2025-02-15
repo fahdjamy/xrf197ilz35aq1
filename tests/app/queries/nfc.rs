@@ -8,7 +8,7 @@ async fn test_create_and_get_nfc_successfully() {
     let app = start_test_app().await;
 
     // 2. create seed data
-    let asset = create_and_save_contract(&app.db_pool)
+    let asset = create_and_save_contract(app.user_fp.clone(), &app.db_pool)
         .await
         .expect("Failed to create and save seed asset");
 
@@ -42,7 +42,7 @@ async fn test_create_and_get_nfc_successfully() {
 async fn test_create_nfc_creates_first_nfc_trail_successfully() {
     let app = start_test_app().await;
 
-    let asset = create_and_save_contract(&app.db_pool)
+    let asset = create_and_save_contract(app.user_fp.clone(), &app.db_pool)
         .await
         .expect("Failed to create and save seed asset");
 
@@ -65,4 +65,7 @@ async fn test_create_nfc_creates_first_nfc_trail_successfully() {
     let trails_list = trails.unwrap();
     assert_eq!(trails_list.len(), 1);
     assert_eq!(trails_list.get(0).unwrap().nfc_id, nfc_id);
+
+    // Clean up: drop database that was connected to
+    app.drop_db().await
 }

@@ -5,6 +5,7 @@ use xrf1::configs::{load_config, DatabaseConfig};
 
 pub struct TestApp {
     db_name: String,
+    pub user_fp: String,
     pub db_pool: PgPool,
     // Arc: Allow shared ownership of the pg_conn across multiple threads
     // Mutex: Provide exclusive access to pg_conn. Only 1 task can hold the lock & access/mutate the pg_conn at a time
@@ -27,27 +28,27 @@ impl TestApp {
 }
 
 pub async fn start_test_app() -> TestApp {
-    let configs = load_config()
-        .expect("Failed to load config");
+    let configs = load_config().expect("Failed to load config");
 
     // create the PgConnection and wrap it with Arc<Mutex<>>
     let pg_conn = Arc::new(Mutex::new(create_pg_connection(&configs.database).await));
 
     let db_name = Uuid::new_v4().to_string();
-    let pg_pool = configure_database(pg_conn.clone(), &configs.database, &db_name)
-        .await;
+    let pg_pool = configure_database(pg_conn.clone(), &configs.database, &db_name).await;
 
     TestApp {
         db_name,
         pg_conn,
         db_pool: pg_pool,
+        user_fp: Uuid::new_v4().to_string(),
     }
 }
 
-pub async fn configure_database(connection: Arc<Mutex<PgConnection>>,
-                                config: &DatabaseConfig,
-                                db_name: &str) -> PgPool {
-
+pub async fn configure_database(
+    connection: Arc<Mutex<PgConnection>>,
+    config: &DatabaseConfig,
+    db_name: &str,
+) -> PgPool {
     // create a new database based on the db name provided (db_name)
     connection
         .lock() // calling .lock() returns back a MutexGuard
@@ -88,32 +89,34 @@ async fn drop_database(connection: Arc<Mutex<PgConnection>>, db_name: &str) {
 
     // Forcefully terminate any remaining connections to the target database.
     // pg_terminate_backend(pid) is a PostgresSQL function that terminates the backend process w/ the given process ID (pid)
-    // most cases, the drop(self.db_pool),will Drop all pool connections. However, this acts as a 
+    // most cases, the drop(self.db_pool),will Drop all pool connections. However, this acts as a
     // safety net. In cases (e.g., bugs in sqlx, race conditions, or issues w/ the PostgresSQL setup)
     // where connections don't get closed immediately
-    conn
-        .execute(
-            // The pg_conn in TestApp holds a separate connection specifically for creating and dropping the DB
-            // all connections to the DB should be dropped except for the "pg_conn" connection's PID
-            format!(
-                r#"
+    conn.execute(
+        // The pg_conn in TestApp holds a separate connection specifically for creating and dropping the DB
+        // all connections to the DB should be dropped except for the "pg_conn" connection's PID
+        format!(
+            r#"
                 SELECT pg_terminate_backend(pg_stat_activity.pid)
                 FROM pg_stat_activity
                 WHERE pg_stat_activity.datname = '{}' AND pid <> pg_backend_pid();
                 "#,
-                db_name
-            )
-                .as_str(),
+            db_name
         )
-        .await
-        .expect("Failed to terminate other connections");
+        .as_str(),
+    )
+    .await
+    .expect("Failed to terminate other connections");
 
-    conn
-        .execute(
-            format!(r#"
+    conn.execute(
+        format!(
+            r#"
             DROP DATABASE "{}";
-            "#, db_name).as_str()
+            "#,
+            db_name
         )
-        .await
-        .expect("Failed to drop database.");
+        .as_str(),
+    )
+    .await
+    .expect("Failed to drop database.");
 }

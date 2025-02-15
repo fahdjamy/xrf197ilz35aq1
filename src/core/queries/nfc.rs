@@ -56,7 +56,7 @@ pub async fn get_nfc_by_id(nfc_id: &str, pool: &PgPool) -> Result<NFC, DatabaseE
 
 #[tracing::instrument(skip(transaction, nf_cert, user_fp))]
 pub async fn create_nfc(
-    mut transaction: PgTransaction,
+    mut transaction: PgTransaction<'_>,
     nf_cert: NFC,
     user_fp: String,
 ) -> Result<bool, DatabaseError> {
@@ -95,7 +95,7 @@ pub async fn create_nfc(
 
 #[tracing::instrument(skip(transaction, trail))]
 async fn create_nfc_trail(
-    transaction: &mut PgTransaction,
+    transaction: &mut PgTransaction<'_>,
     trail: &NFCTrail,
 ) -> Result<bool, DatabaseError> {
     info!(

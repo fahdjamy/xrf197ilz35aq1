@@ -1,12 +1,17 @@
-use crate::core::{Asset, DatabaseError, OrderType, UpdateAssetRequest};
+use crate::core::{create_nfc, Asset, DatabaseError, OrderType, UpdateAssetRequest, NFC};
 use anyhow::anyhow;
 use chrono::Utc;
 use sqlx::{PgPool, QueryBuilder};
 use tracing::error;
 
 #[tracing::instrument(level = "debug", skip(pg_pool, asset), name = "Create new asset")]
-pub async fn create_new_asset(asset: &Asset, pg_pool: &PgPool) -> Result<bool, anyhow::Error> {
+pub async fn create_new_asset(
+    asset: &Asset,
+    user_fp: String,
+    pg_pool: &PgPool,
+) -> Result<bool, anyhow::Error> {
     tracing::debug!("saving new asset to DB :: id={}", &asset.id);
+    let mut transaction = pg_pool.begin().await?;
     let result = sqlx::query!(
         "
         INSERT INTO asset (
@@ -30,13 +35,26 @@ pub async fn create_new_asset(asset: &Asset, pg_pool: &PgPool) -> Result<bool, a
         asset.updated_at,
         asset.updated_by,
     )
-        .execute(pg_pool)
+    .execute(&mut *transaction)
+    .await
+    .map_err(|e| {
+        error!("Error executing SQL query: {:?}", e);
+        anyhow!("something went wrong")
+    })?;
+    let nf_cert = NFC::new(asset.id.clone()).map_err(|e| anyhow!(e))?;
+
+    if result.rows_affected() == 0 {
+        return Ok(false);
+    }
+
+    create_nfc(transaction, nf_cert, user_fp)
         .await
         .map_err(|e| {
-            error!("Error executing SQL query: {:?}", e);
-            anyhow!("something went wrong")
+            error!("Error creating NFC table: {:?}", e);
+            anyhow!("Error creating NFC table")
         })?;
-    Ok(result.rows_affected() == 1)
+
+    Ok(true)
 }
 
 #[tracing::instrument(level = "debug", skip(pg_pool))]
@@ -57,7 +75,11 @@ pub async fn find_asset_by_id(asset_id: &str, pg_pool: &PgPool) -> Result<Asset,
 }
 
 #[tracing::instrument(level = "debug", skip(pg_pool, asset_id, org_id))]
-pub async fn find_asset_by_id_and_org_id(asset_id: &str, org_id: &str, pg_pool: &PgPool) -> Result<Asset, DatabaseError> {
+pub async fn find_asset_by_id_and_org_id(
+    asset_id: &str,
+    org_id: &str,
+    pg_pool: &PgPool,
+) -> Result<Asset, DatabaseError> {
     let result = sqlx::query_as!(
         Asset,
         r#"
@@ -74,11 +96,22 @@ pub async fn find_asset_by_id_and_org_id(asset_id: &str, org_id: &str, pg_pool: 
 }
 
 #[tracing::instrument(level = "debug", skip(pg_pool, limit, offset, order_by))]
-pub async fn get_all_assets(pg_pool: &PgPool, offset: i64, limit: i64, order_by: OrderType) -> Result<Vec<Asset>, DatabaseError> {
+pub async fn get_all_assets(
+    pg_pool: &PgPool,
+    offset: i64,
+    limit: i64,
+    order_by: OrderType,
+) -> Result<Vec<Asset>, DatabaseError> {
     if limit < 1 || limit > 100 {
-        return Err(DatabaseError::InvalidArgument("limit must be between 1 and 100".to_string()));
+        return Err(DatabaseError::InvalidArgument(
+            "limit must be between 1 and 100".to_string(),
+        ));
     }
-    tracing::debug!("fetching assets from DB :: start={} :: limit={}", &offset, &limit);
+    tracing::debug!(
+        "fetching assets from DB :: start={} :: limit={}",
+        &offset,
+        &limit
+    );
     // SQLx often requires i64 for LIMIT & OFFSET to ensure compatibility w/ various DB types & potential large values.
     let result = match order_by {
         OrderType::Asc => {
@@ -118,8 +151,13 @@ pub async fn get_all_assets(pg_pool: &PgPool, offset: i64, limit: i64, order_by:
 }
 
 #[tracing::instrument(level = "debug", skip(pg_pool, limit, order_by))]
-pub async fn find_assets_symbol_like(symbol: &str, limit: i16, offset: i64, order_by: OrderType, pg_pool: &PgPool)
-                                     -> Result<Vec<Asset>, DatabaseError> {
+pub async fn find_assets_symbol_like(
+    symbol: &str,
+    limit: i16,
+    offset: i64,
+    order_by: OrderType,
+    pg_pool: &PgPool,
+) -> Result<Vec<Asset>, DatabaseError> {
     // TO DO: Look into
     // 1. Full-text search: Better for complex searches w/ multiple words, phrases, & linguistic considerations
     // OR
@@ -166,10 +204,18 @@ pub async fn find_assets_symbol_like(symbol: &str, limit: i16, offset: i64, orde
 }
 
 #[tracing::instrument(level = "debug", skip(pg_pool, limit, order_by, offset))]
-pub async fn find_assets_name_like(name: &str, offset: i64, limit: usize, order_by: OrderType, pg_pool: &PgPool)
-                                   -> Result<Vec<Asset>, DatabaseError> {
+pub async fn find_assets_name_like(
+    name: &str,
+    offset: i64,
+    limit: usize,
+    order_by: OrderType,
+    pg_pool: &PgPool,
+) -> Result<Vec<Asset>, DatabaseError> {
     let search_term = format!("%{}%", sanitize_search_term(name));
-    tracing::debug!("fetching assets from DB :: name={}", sanitize_search_term(name));
+    tracing::debug!(
+        "fetching assets from DB :: name={}",
+        sanitize_search_term(name)
+    );
 
     let result = match order_by {
         OrderType::Asc => {
@@ -212,27 +258,31 @@ pub async fn find_assets_name_like(name: &str, offset: i64, limit: usize, order_
 #[tracing::instrument(level = "debug", skip(pg_pool))]
 pub async fn delete_asset_by_id(asset_id: &str, pg_pool: &PgPool) -> Result<bool, DatabaseError> {
     tracing::debug!("deleting asset :: id = {}", asset_id);
-    let result = sqlx::query!(
-        "DELETE FROM asset WHERE id = $1",
-        asset_id
-    )
+    let result = sqlx::query!("DELETE FROM asset WHERE id = $1", asset_id)
         .execute(pg_pool)
         .await?;
     Ok(result.rows_affected() == 1)
 }
 
 #[tracing::instrument(level = "debug", skip(pg_pool, asset))]
-pub async fn update_asset(asset_id: &str, asset: &UpdateAssetRequest, pg_pool: &PgPool) -> Result<bool, DatabaseError> {
+pub async fn update_asset(
+    asset_id: &str,
+    asset: &UpdateAssetRequest,
+    pg_pool: &PgPool,
+) -> Result<bool, DatabaseError> {
     if asset.updated_by.is_empty() {
-        return Err(DatabaseError::InvalidArgument("updated_by is required".to_string()));
+        return Err(DatabaseError::InvalidArgument(
+            "updated_by is required".to_string(),
+        ));
     }
     // no field is there to be updated, return early
-    if asset.name.is_none() &&
-        asset.symbol.is_none() &&
-        asset.listable.is_none() &&
-        asset.tradable.is_none() &&
-        asset.description.is_none() &&
-        asset.organization.is_none() {
+    if asset.name.is_none()
+        && asset.symbol.is_none()
+        && asset.listable.is_none()
+        && asset.tradable.is_none()
+        && asset.description.is_none()
+        && asset.organization.is_none()
+    {
         return Ok(true);
     }
     let mut first = true;
@@ -243,9 +293,7 @@ pub async fn update_asset(asset_id: &str, asset: &UpdateAssetRequest, pg_pool: &
         ("organization", &asset.organization),
     ];
     let mut query_builder = QueryBuilder::new("UPDATE asset SET ");
-    for (field_name, field_value) in str_fields
-        .iter()
-        .filter(|(_, v)| v.is_some()) {
+    for (field_name, field_value) in str_fields.iter().filter(|(_, v)| v.is_some()) {
         if !first {
             query_builder.push(", ");
         }
@@ -276,7 +324,9 @@ pub async fn update_asset(asset_id: &str, asset: &UpdateAssetRequest, pg_pool: &
 
     // SET the necessary fields
     query_builder.push("updated_at = ").push_bind(Utc::now());
-    query_builder.push(", updated_by = ").push_bind(&asset.updated_by);
+    query_builder
+        .push(", updated_by = ")
+        .push_bind(&asset.updated_by);
 
     // SET WHERE clause
     query_builder.push(" WHERE id = ").push_bind(asset_id);

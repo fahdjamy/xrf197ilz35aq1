@@ -9,13 +9,12 @@ async fn test_create_contract_success() {
     let app = start_test_app().await;
 
     // 2. create seed data
-    let asset = create_and_save_contract(&app.db_pool)
+    let asset = create_and_save_contract(app.user_fp.clone(), &app.db_pool)
         .await
         .expect("Failed to create and save seed asset");
 
     // 3. Create test data
-    let contract = create_test_contract(asset.id)
-        .expect("failed to create contract");
+    let contract = create_test_contract(asset.id).expect("failed to create contract");
 
     // 4. Act:
     // Insert the contract into the database
@@ -35,14 +34,15 @@ fn create_test_contract(asset_id: String) -> Result<Contract, DomainError> {
     let currency_list = HashSet::from_iter(currencies);
 
     // Create a sample DbContract
-    Contract::new(asset_id,
-                  "11".to_string(),
-                  "summary".to_string(),
-                  "user_fp".to_string(),
-                  20.0,
-                  false,
-                  3.0,
-                  "user_fp".to_string(),
-                  currency_list,
+    Contract::new(
+        asset_id,
+        "11".to_string(),
+        "summary".to_string(),
+        "user_fp".to_string(),
+        20.0,
+        false,
+        3.0,
+        "user_fp".to_string(),
+        currency_list,
     )
 }
