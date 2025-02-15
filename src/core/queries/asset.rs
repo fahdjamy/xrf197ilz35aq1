@@ -35,12 +35,12 @@ pub async fn create_new_asset(
         asset.updated_at,
         asset.updated_by,
     )
-    .execute(&mut *transaction)
-    .await
-    .map_err(|e| {
-        error!("Error executing SQL query: {:?}", e);
-        anyhow!("something went wrong")
-    })?;
+        .execute(&mut *transaction)
+        .await
+        .map_err(|e| {
+            error!("Error executing SQL query: {:?}", e);
+            anyhow!("something went wrong")
+        })?;
     let nf_cert = NFC::new(asset.id.clone()).map_err(|e| anyhow!(e))?;
 
     if result.rows_affected() == 0 {

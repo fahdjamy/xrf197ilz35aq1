@@ -1,7 +1,9 @@
 mod server;
 mod interceptors;
 mod services;
+mod header;
 
+pub use header::{get_header_value, XRF_USER_FINGERPRINT};
 pub use server::GrpcServer;
 
 pub mod asset {
