@@ -103,10 +103,10 @@ async fn drop_database(connection: Arc<Mutex<PgConnection>>, db_name: &str) {
                 "#,
             db_name
         )
-        .as_str(),
+            .as_str(),
     )
-    .await
-    .expect("Failed to terminate other connections");
+        .await
+        .expect("Failed to terminate other connections");
 
     conn.execute(
         format!(
@@ -115,8 +115,8 @@ async fn drop_database(connection: Arc<Mutex<PgConnection>>, db_name: &str) {
             "#,
             db_name
         )
-        .as_str(),
+            .as_str(),
     )
-    .await
-    .expect("Failed to drop database.");
+        .await
+        .expect("Failed to drop database.");
 }

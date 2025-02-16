@@ -4,6 +4,10 @@ use tracing::error;
 pub const XRF_USER_FINGERPRINT: &str = "xrf-user-fp";
 
 pub fn get_header_value(metadata_map: &MetadataMap, header_name: &str) -> Option<String> {
+    // For Case-Insensitivity: this creates keys that are treated case-insensitively during lookups.
+    // i.e: "my-header", "My-Header", "MY-HEADER" are all considered the same
+    // '::from_bytes' function (and others like from_static) will return an error if the provided 
+    // byte sequence doesn't represent a valid HTTP header name (i.e., it contains illegal characters)
     let header_key = match MetadataKey::from_bytes(header_name.as_bytes()) {
         Ok(key) => key,
         Err(_) => {

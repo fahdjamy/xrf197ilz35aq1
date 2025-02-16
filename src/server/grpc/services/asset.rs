@@ -6,6 +6,7 @@ use crate::server::grpc::asset::{Asset as GrpcAsset, CreateRequest, CreateRespon
                                  GetAssetsNameLikeRequest, GetAssetsNameLikeResponse, GetPaginatedAssetsRequest,
                                  GetPaginatedAssetsResponse, GetStreamedAssetsRequest, GetStreamedAssetsResponse, UpdateAssetRequest as GrpcUpdateAsset, UpdateAssetResponse};
 use crate::server::grpc::interceptors::trace_request;
+use crate::server::grpc::{get_header_value, XRF_USER_FINGERPRINT};
 use prost_types::Timestamp;
 use sqlx::PgPool;
 use std::pin::Pin;
@@ -94,6 +95,13 @@ impl AssetServiceManager {
 impl AssetService for AssetServiceManager {
     async fn create(&self, request: Request<CreateRequest>) -> Result<Response<CreateResponse>, Status> {
         trace_request!(request, "create_asset");
+        let user_fp = match get_header_value(&request.metadata(), XRF_USER_FINGERPRINT) {
+            None => {
+                return Err(Status::invalid_argument("Missing xrf-user-fp".to_string()));
+            }
+            Some(user_fp_value) => user_fp_value
+        };
+
         let req = request.into_inner();
         info!("creating new asset :: (name={} -> symbol={})", &req.name, &req.symbol);
         let asset = Asset::new(req.name, req.symbol, "req.".parse().unwrap(), req.description, req.organization)
@@ -105,7 +113,7 @@ impl AssetService for AssetServiceManager {
                 DomainError::InvalidArgument(err) => Status::invalid_argument(err.to_string()),
                 DomainError::ValidationError(err) => Status::invalid_argument(err.to_string()),
             })?;
-        let asset_create_resp = create_new_asset(&asset, &self.pg_pool).await;
+        let asset_create_resp = create_new_asset(&asset, user_fp, &self.pg_pool).await;
         if let Err(err) = asset_create_resp {
             return Err(Status::internal(err.to_string()));
         }
