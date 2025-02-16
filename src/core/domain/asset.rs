@@ -88,7 +88,6 @@ impl Asset {
 
 #[derive(Debug, Clone)]
 pub struct UpdateAssetRequest {
-    pub updated_by: String,
     pub name: Option<String>,
     pub symbol: Option<String>,
     pub listable: Option<bool>,
@@ -99,7 +98,6 @@ pub struct UpdateAssetRequest {
 
 impl UpdateAssetRequest {
     pub fn new(
-        updated_by: String,
         name: Option<String>,
         listable: Option<bool>,
         tradable: Option<bool>,
@@ -112,7 +110,6 @@ impl UpdateAssetRequest {
             symbol,
             listable,
             tradable,
-            updated_by,
             description,
             organization,
         }

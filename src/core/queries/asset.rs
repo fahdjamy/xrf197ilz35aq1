@@ -267,10 +267,11 @@ pub async fn delete_asset_by_id(asset_id: &str, pg_pool: &PgPool) -> Result<bool
 #[tracing::instrument(level = "debug", skip(pg_pool, asset))]
 pub async fn update_asset(
     asset_id: &str,
+    updated_by: &str,
     asset: &UpdateAssetRequest,
     pg_pool: &PgPool,
 ) -> Result<bool, DatabaseError> {
-    if asset.updated_by.is_empty() {
+    if updated_by.is_empty() || updated_by.len() < 50 {
         return Err(DatabaseError::InvalidArgument(
             "updated_by is required".to_string(),
         ));
@@ -326,7 +327,7 @@ pub async fn update_asset(
     query_builder.push("updated_at = ").push_bind(Utc::now());
     query_builder
         .push(", updated_by = ")
-        .push_bind(&asset.updated_by);
+        .push_bind(updated_by);
 
     // SET WHERE clause
     query_builder.push(" WHERE id = ").push_bind(asset_id);

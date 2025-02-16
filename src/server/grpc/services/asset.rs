@@ -6,7 +6,7 @@ use crate::server::grpc::asset::{Asset as GrpcAsset, CreateRequest, CreateRespon
                                  GetAssetsNameLikeRequest, GetAssetsNameLikeResponse, GetPaginatedAssetsRequest,
                                  GetPaginatedAssetsResponse, GetStreamedAssetsRequest, GetStreamedAssetsResponse, UpdateAssetRequest as GrpcUpdateAsset, UpdateAssetResponse};
 use crate::server::grpc::interceptors::trace_request;
-use crate::server::grpc::{get_header_value, XRF_USER_FINGERPRINT};
+use crate::server::grpc::{get_xrf_user_auth_header, XRF_USER_FINGERPRINT};
 use prost_types::Timestamp;
 use sqlx::PgPool;
 use std::pin::Pin;
@@ -50,7 +50,6 @@ impl From<GrpcUpdateAsset> for UpdateAssetRequest {
             symbol: value.symbol,
             tradable: value.tradable,
             listable: value.listable,
-            updated_by: value.user_fp,
             description: value.description,
             organization: Option::from(value.org_id),
         }
@@ -95,16 +94,10 @@ impl AssetServiceManager {
 impl AssetService for AssetServiceManager {
     async fn create(&self, request: Request<CreateRequest>) -> Result<Response<CreateResponse>, Status> {
         trace_request!(request, "create_asset");
-        let user_fp = match get_header_value(&request.metadata(), XRF_USER_FINGERPRINT) {
-            None => {
-                return Err(Status::invalid_argument("Missing xrf-user-fp".to_string()));
-            }
-            Some(user_fp_value) => user_fp_value
-        };
-
+        let user_fp = get_xrf_user_auth_header(&request.metadata(), XRF_USER_FINGERPRINT)?;
         let req = request.into_inner();
         info!("creating new asset :: (name={} -> symbol={})", &req.name, &req.symbol);
-        let asset = Asset::new(req.name, req.symbol, "req.".parse().unwrap(), req.description, req.organization)
+        let asset = Asset::new(req.name, req.symbol, user_fp.clone(), req.description, req.organization)
             .map_err(|e| match e {
                 DomainError::ServerError(err) => Status::internal(err.to_string()),
                 DomainError::DatabaseError(err) => Status::internal(err.to_string()),
@@ -123,6 +116,7 @@ impl AssetService for AssetServiceManager {
 
     async fn update_asset(&self, request: Request<GrpcUpdateAsset>) -> Result<Response<UpdateAssetResponse>, Status> {
         trace_request!(request, "update_asset");
+        let user_fp = get_xrf_user_auth_header(&request.metadata(), XRF_USER_FINGERPRINT)?;
         let req = request.into_inner();
         info!("updating asset :: id = {}", &req.asset_id);
 
@@ -134,10 +128,6 @@ impl AssetService for AssetServiceManager {
 
         let updated_asset_req: UpdateAssetRequest = req.into();
 
-        if updated_asset_req.updated_by.is_empty() {
-            return Err(Status::invalid_argument("user finger print for user is required"));
-        }
-
         if updated_asset_req.name.is_none()
             && updated_asset_req.symbol.is_none()
             && updated_asset_req.listable.is_none()
@@ -146,7 +136,7 @@ impl AssetService for AssetServiceManager {
             return Err(Status::invalid_argument("At least one updatable field is required"));
         }
 
-        let response = match update_asset(&asset_id, &updated_asset_req, &self.pg_pool).await {
+        let response = match update_asset(&asset_id, &user_fp, &updated_asset_req, &self.pg_pool).await {
             Ok(updated) => updated,
             Err(e) => {
                 return match e {

@@ -1,4 +1,5 @@
 use tonic::metadata::{MetadataKey, MetadataMap};
+use tonic::Status;
 use tracing::error;
 
 pub const XRF_USER_FINGERPRINT: &str = "xrf-user-fp";
@@ -26,6 +27,19 @@ pub fn get_header_value(metadata_map: &MetadataMap, header_name: &str) -> Option
         }
     } else {
         None
+    }
+}
+
+pub fn get_xrf_user_auth_header(metadata_map: &MetadataMap, header_name: &str) -> Result<String, Status> {
+    let response = get_header_value(metadata_map, header_name);
+    if response.is_none() {
+        Err(Status::invalid_argument("Missing xrf-user-fp".to_string()))
+    } else {
+        let xrf_user_auth_value = response.unwrap();
+        if xrf_user_auth_value.is_empty() || xrf_user_auth_value.len() != 55 {
+            return Err(Status::invalid_argument("Missing xrf-user-fp".to_string()));
+        }
+        Ok(xrf_user_auth_value)
     }
 }
 

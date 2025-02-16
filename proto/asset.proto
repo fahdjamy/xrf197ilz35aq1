@@ -86,13 +86,12 @@ message GetAssetsNameLikeResponse {
 
 message UpdateAssetRequest {
   string org_id = 1;
-  string user_fp = 2;
-  string asset_id = 3;
-  optional string name = 4;
-  optional string symbol = 5;
-  optional bool listable = 6;
-  optional bool tradable = 7;
-  optional string description = 8;
+  string asset_id = 2;
+  optional string name = 3;
+  optional string symbol = 4;
+  optional bool listable = 5;
+  optional bool tradable = 6;
+  optional string description = 7;
 }
 
 message UpdateAssetResponse {
