@@ -36,8 +36,8 @@ pub fn get_xrf_user_auth_header(metadata_map: &MetadataMap, header_name: &str) -
         Err(Status::invalid_argument("Missing xrf-user-fp".to_string()))
     } else {
         let xrf_user_auth_value = response.unwrap();
-        if xrf_user_auth_value.is_empty() || xrf_user_auth_value.len() != 55 {
-            return Err(Status::invalid_argument("Missing xrf-user-fp".to_string()));
+        if xrf_user_auth_value.is_empty() || xrf_user_auth_value.len() < 55 || xrf_user_auth_value.len() > 125 {
+            return Err(Status::invalid_argument("Invalid 'xrf-user-fp' header".to_string()));
         }
         Ok(xrf_user_auth_value)
     }
