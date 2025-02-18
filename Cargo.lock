@@ -330,9 +330,9 @@ version = "1.12.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4c2b7ddaa2c56a367ad27a094ad8ef4faacf8a617c2575acb2ba88949df999ca"
 dependencies = [
-    "aws-lc-sys",
-    "paste",
-    "zeroize",
+ "aws-lc-sys",
+ "paste",
+ "zeroize",
 ]
 
 [[package]]
@@ -341,12 +341,12 @@ version = "0.25.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "54ac4f13dad353b209b34cbec082338202cbc01c8f00336b55c750c13ac91f8f"
 dependencies = [
-    "bindgen",
-    "cc",
-    "cmake",
-    "dunce",
-    "fs_extra",
-    "paste",
+ "bindgen",
+ "cc",
+ "cmake",
+ "dunce",
+ "fs_extra",
+ "paste",
 ]
 
 [[package]]
@@ -435,21 +435,21 @@ version = "0.69.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "271383c67ccabffb7381723dea0672a673f292304fcb45c01cc648c7a8d58088"
 dependencies = [
-    "bitflags",
-    "cexpr",
-    "clang-sys",
-    "itertools 0.12.1",
-    "lazy_static",
-    "lazycell",
-    "log",
-    "prettyplease",
-    "proc-macro2",
-    "quote",
-    "regex",
-    "rustc-hash",
-    "shlex",
-    "syn",
-    "which",
+ "bitflags",
+ "cexpr",
+ "clang-sys",
+ "itertools 0.12.1",
+ "lazy_static",
+ "lazycell",
+ "log",
+ "prettyplease",
+ "proc-macro2",
+ "quote",
+ "regex",
+ "rustc-hash",
+ "shlex",
+ "syn",
+ "which",
 ]
 
 [[package]]
@@ -535,7 +535,7 @@ version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6fac387a98bb7c37292057cffc56d62ecb629900026402633ae9160df93a8766"
 dependencies = [
-    "nom",
+ "nom",
 ]
 
 [[package]]
@@ -564,9 +564,9 @@ version = "1.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b023947811758c97c59bf9d1c188fd619ad4718dcaa767947df1cadb14f39f4"
 dependencies = [
-    "glob",
-    "libc",
-    "libloading",
+ "glob",
+ "libc",
+ "libloading",
 ]
 
 [[package]]
@@ -575,7 +575,7 @@ version = "0.1.54"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e7caa3f9de89ddbe2c607f4101924c5abec803763ae9534e4f4d7d8f84aa81f0"
 dependencies = [
-    "cc",
+ "cc",
 ]
 
 [[package]]
@@ -1498,7 +1498,7 @@ version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ba291022dbbd398a455acf126c1e341954079855bc60dfdda641363bd6922569"
 dependencies = [
-    "either",
+ "either",
 ]
 
 [[package]]
@@ -1578,8 +1578,8 @@ version = "0.8.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4979f22fdb869068da03c9f7528f8297c6fd2606bc3a4affe42e6a823fdb8da4"
 dependencies = [
-    "cfg-if",
-    "windows-targets 0.48.5",
+ "cfg-if",
+ "windows-targets 0.48.5",
 ]
 
 [[package]]
@@ -2041,7 +2041,7 @@ checksum = "0c1318b19085f08681016926435853bbf7858f9c082d0999b80550ff5d9abe15"
 dependencies = [
  "bytes",
  "heck",
-    "itertools 0.13.0",
+ "itertools 0.13.0",
  "log",
  "multimap",
  "once_cell",
@@ -2061,7 +2061,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "157c5a9d7ea5c2ed2d9fb8f495b64759f7816c7eaea54ba3978f0d63000162e3"
 dependencies = [
  "anyhow",
-    "itertools 0.13.0",
+ "itertools 0.13.0",
  "proc-macro2",
  "quote",
  "syn",
@@ -2323,8 +2323,8 @@ version = "0.23.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "934b404430bb06b3fae2cba809eb45a1ab1aecd64491213d7c3301b88393f8d1"
 dependencies = [
-    "aws-lc-rs",
-    "log",
+ "aws-lc-rs",
+ "log",
  "once_cell",
  "ring",
  "rustls-pki-types",
@@ -2354,7 +2354,7 @@ version = "0.102.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "64ca1bc8749bd4cf37b5ce386cc146580777b4e8572c7b97baf22c83f444bee9"
 dependencies = [
-    "aws-lc-rs",
+ "aws-lc-rs",
  "ring",
  "rustls-pki-types",
  "untrusted",
@@ -3478,10 +3478,10 @@ version = "4.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "87ba24419a2078cd2b0f2ede2691b6c66d8e47836da3b6db8265ebad47afbfc7"
 dependencies = [
-    "either",
-    "home",
-    "once_cell",
-    "rustix",
+ "either",
+ "home",
+ "once_cell",
+ "rustix",
 ]
 
 [[package]]
@@ -3702,6 +3702,7 @@ dependencies = [
  "anyhow",
  "async-stream",
  "base64 0.22.1",
+ "bytes",
  "chrono",
  "config",
  "getrandom 0.3.1",
@@ -3712,8 +3713,8 @@ dependencies = [
  "rand 0.9.0",
  "rayon",
  "ring",
-    "rustls",
-    "rustls-pemfile",
+ "rustls",
+ "rustls-pemfile",
  "secrecy",
  "serde",
  "serde-aux",
