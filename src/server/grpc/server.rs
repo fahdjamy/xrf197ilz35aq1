@@ -5,21 +5,17 @@ use crate::server::grpc::asset::contract_service_server::ContractServiceServer;
 use crate::server::grpc::services::{AssetServiceManager, ContractServiceManager};
 use anyhow::Context;
 use bytes::Bytes;
-use rustls::pki_types::{CertificateDer, PrivateKeyDer};
-use rustls_pemfile::Item;
 use sqlx::PgPool;
 use std::fs;
-use std::fs::File;
-use std::io::BufReader;
 use std::path::Path;
 use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
 use tonic::metadata::{KeyAndValueRef, MetadataKey, MetadataValue};
-use tonic::transport::Server;
+use tonic::transport::{Identity, Server, ServerTlsConfig};
 use tonic::{Request, Status};
 use tower::ServiceBuilder;
-use tracing::{info, info_span, warn};
+use tracing::{info, info_span};
 
 pub struct GrpcServer {
     timeout: Duration,
@@ -27,6 +23,9 @@ pub struct GrpcServer {
     asset_service: AssetServiceManager,
     contract_service: ContractServiceManager,
 }
+
+const SSL_PERM_SERVE_KEY_PATH: &str = "./local/ssl/server.key";
+const SSL_PERM_SERVE_CERT_PATH: &str = "./local/ssl/server.crt";
 
 impl GrpcServer {
     pub fn new(pg_pool: PgPool, config: GrpcServerConfig) -> Result<Self, anyhow::Error> {
@@ -53,9 +52,13 @@ impl GrpcServer {
 
     pub async fn run_until_stopped(self) -> anyhow::Result<()> {
         info!("starting gRPC server :: port {}", &self.addr.port());
-        // Load the PEM-encoded data directly.
-        let cert_perm = load_pem_data(Path::new("./certs/cert.pem"));
-        let key_perm = load_pem_data(Path::new("./certs/server.key"));
+        // Load the PEM-encoded data directly. pem (Privacy-Enhanced Mail)
+        // .crt (Certificate): This extension is conventionally used for files that contain only 
+        // certs (usually X.509 certificates). It's still PEM-encoded data, just w/ a more specific file ext
+        let cert_pem = load_pem_data(Path::new(SSL_PERM_SERVE_CERT_PATH))?;
+        // .key (Private Key): This extension is conventionally used for files that contain only 
+        // private keys. Again, it's still PEM-encoded data
+        let key_pem = load_pem_data(Path::new(SSL_PERM_SERVE_KEY_PATH))?;
 
         // Tower: Setting up interceptors
         // Stack of middleware that the service will be wrapped in
@@ -65,6 +68,8 @@ impl GrpcServer {
             .into_inner();
 
         Server::builder()
+            .tls_config(ServerTlsConfig::new().identity(Identity::from_pem(cert_pem, key_pem)))
+            .context("Failed to create TLS config")?
             .layer(tower_layers)
             .max_connection_age(self.timeout)
             .add_service(AssetServiceServer::new(self.asset_service))
@@ -99,43 +104,6 @@ impl GrpcServer {
 
         Ok(req)
     }
-}
-
-fn load_certs_and_key(cert_path: &Path, key_path: &Path)
-                      -> anyhow::Result<(Vec<CertificateDer<'static>>, PrivateKeyDer<'static>)> {
-
-    // Load certificate(s).
-    let cert_file = File::open(cert_path).context("Failed to open certificate file")?;
-    let mut reader = BufReader::new(cert_file);
-    let mut certs = Vec::new();
-    while let Ok(Some(item)) = rustls_pemfile::read_one(&mut reader) {
-        if let Item::X509Certificate(cert) = item {
-            certs.push(cert.into_owned()); // Convert to CertificateDer<'static>
-        } else {
-            // Log and ignore other items, or handle them appropriately
-            // use tracing::warn if you're using the tracing lib
-            warn!("Certificate is not a valid PEM encoded X509 certificate");
-        }
-    }
-
-    if certs.is_empty() {
-        anyhow::bail!("No certificates found in {}", cert_path.display());
-    }
-
-    // Load private key
-    let key_file = File::open(key_path).context("Failed to open private key file")?;
-    let mut key_reader = BufReader::new(key_file);
-    let key = match rustls_pemfile::read_one(&mut key_reader).context("Failed to read private key")? {
-        // Types: PKCS#8, SEC1, and RSA (old) represent different formats for storing private keys
-        // private key file doesn't just contain the raw mathematical key;  it's wrapped in a specific
-        // format that defines how the key data is structured and potentially encrypted.
-        Some(Item::Pkcs8Key(key)) => PrivateKeyDer::from(key), // Convert to PrivateKeyDer
-        Some(Item::Sec1Key(key)) => PrivateKeyDer::from(key), // Convert to PrivateKeyDer
-        Some(_) => anyhow::bail!("Found an unexpected item in the key file. Expected a PKCS#8, Sec1, or RSA key."),
-        None => anyhow::bail!("No private key found in {}", key_path.display()),
-    };
-
-    Ok((certs, key))
 }
 
 fn load_pem_data(path: &Path) -> anyhow::Result<Bytes> {

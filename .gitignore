@@ -2,6 +2,8 @@
 .idea
 .logs
 
+/local
+
 # TODO these directories should be later undone from this file and allow for tracking
 .sqlx
 migrations
