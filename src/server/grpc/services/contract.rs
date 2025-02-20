@@ -1,4 +1,4 @@
-use crate::common::REQUEST_ID_KEY;
+use crate::constant::REQUEST_ID_KEY;
 use crate::core::{create_contract, find_asset_by_id, Contract, Currency, DatabaseError};
 use crate::server::grpc::asset::contract_service_server::ContractService;
 use crate::server::grpc::asset::{CreateContractRequest, CreateContractResponse};

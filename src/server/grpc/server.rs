@@ -1,5 +1,6 @@
-use crate::common::{generate_request_id, CERT_PEM_PATH, KEY_PEM_PATH, REQUEST_ID_KEY};
+use crate::common::generate_request_id;
 use crate::configs::GrpcServerConfig;
+use crate::constant::{CERT_PEM_PATH, KEY_PEM_PATH, REQUEST_ID_KEY};
 use crate::server::grpc::asset::asset_service_server::AssetServiceServer;
 use crate::server::grpc::asset::contract_service_server::ContractServiceServer;
 use crate::server::grpc::services::{AssetServiceManager, ContractServiceManager};

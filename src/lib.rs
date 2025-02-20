@@ -5,4 +5,6 @@ pub mod startup;
 pub mod telemetry;
 pub mod common;
 mod context;
+pub mod constant;
+
 pub use context::Environment;
