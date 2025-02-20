@@ -1,4 +1,4 @@
-use crate::common::{generate_request_id, REQUEST_ID_KEY};
+use crate::common::{generate_request_id, CERT_PEM_PATH, KEY_PEM_PATH, REQUEST_ID_KEY};
 use crate::configs::GrpcServerConfig;
 use crate::server::grpc::asset::asset_service_server::AssetServiceServer;
 use crate::server::grpc::asset::contract_service_server::ContractServiceServer;
@@ -23,9 +23,6 @@ pub struct GrpcServer {
     asset_service: AssetServiceManager,
     contract_service: ContractServiceManager,
 }
-
-const CERT_PEM_PATH: &str = "XRF_PERM-SERVER-CERT-PATH";
-const KEY_PEM_PATH: &str = "XRF_PERM-SERVER-CERT-PATH";
 
 const SSL_PEM_SERVE_KEY_PATH: &str = "./local/ssl/server.key";
 const SSL_PEM_SERVE_CERT_PATH: &str = "./local/ssl/server.crt";
@@ -55,8 +52,8 @@ impl GrpcServer {
 
     pub async fn run_until_stopped(self) -> anyhow::Result<()> {
         info!("starting gRPC server :: port {}", &self.addr.port());
-        let cert_path = &get_path_from_env_or(CERT_PEM_PATH, SSL_PEM_SERVE_CERT_PATH);
         let key_path = &get_path_from_env_or(KEY_PEM_PATH, SSL_PEM_SERVE_KEY_PATH);
+        let cert_path = &get_path_from_env_or(CERT_PEM_PATH, SSL_PEM_SERVE_CERT_PATH);
         // Load the PEM-encoded data directly. pem (Privacy-Enhanced Mail)
         // .crt (Certificate): This extension is conventionally used for files that contain only
         // certs (usually X.509 certificates). It's still PEM-encoded data, just w/ a more specific file ext
