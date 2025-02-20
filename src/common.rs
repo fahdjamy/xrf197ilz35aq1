@@ -2,6 +2,7 @@ use std::fmt;
 use std::fmt::Display;
 use uuid::Uuid;
 
+pub const XRF_ENV_KEY: &str = "XRF_ENV";
 pub const REQUEST_ID_KEY: &str = "request-id";
 
 pub fn generate_request_id() -> String {

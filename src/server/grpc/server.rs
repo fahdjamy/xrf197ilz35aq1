@@ -15,7 +15,7 @@ use tonic::metadata::{KeyAndValueRef, MetadataKey, MetadataValue};
 use tonic::transport::{Identity, Server, ServerTlsConfig};
 use tonic::{Request, Status};
 use tower::ServiceBuilder;
-use tracing::{info, info_span};
+use tracing::{debug, info, info_span, warn};
 
 pub struct GrpcServer {
     timeout: Duration,
@@ -24,8 +24,11 @@ pub struct GrpcServer {
     contract_service: ContractServiceManager,
 }
 
-const SSL_PERM_SERVE_KEY_PATH: &str = "./local/ssl/server.key";
-const SSL_PERM_SERVE_CERT_PATH: &str = "./local/ssl/server.crt";
+const CERT_PEM_PATH: &str = "XRF_PERM-SERVER-CERT-PATH";
+const KEY_PEM_PATH: &str = "XRF_PERM-SERVER-CERT-PATH";
+
+const SSL_PEM_SERVE_KEY_PATH: &str = "./local/ssl/server.key";
+const SSL_PEM_SERVE_CERT_PATH: &str = "./local/ssl/server.crt";
 
 impl GrpcServer {
     pub fn new(pg_pool: PgPool, config: GrpcServerConfig) -> Result<Self, anyhow::Error> {
@@ -52,13 +55,15 @@ impl GrpcServer {
 
     pub async fn run_until_stopped(self) -> anyhow::Result<()> {
         info!("starting gRPC server :: port {}", &self.addr.port());
+        let cert_path = &get_path_from_env_or(CERT_PEM_PATH, SSL_PEM_SERVE_CERT_PATH);
+        let key_path = &get_path_from_env_or(KEY_PEM_PATH, SSL_PEM_SERVE_KEY_PATH);
         // Load the PEM-encoded data directly. pem (Privacy-Enhanced Mail)
-        // .crt (Certificate): This extension is conventionally used for files that contain only 
+        // .crt (Certificate): This extension is conventionally used for files that contain only
         // certs (usually X.509 certificates). It's still PEM-encoded data, just w/ a more specific file ext
-        let cert_pem = load_pem_data(Path::new(SSL_PERM_SERVE_CERT_PATH))?;
-        // .key (Private Key): This extension is conventionally used for files that contain only 
+        let cert_pem = load_pem_data(Path::new(cert_path))?;
+        // .key (Private Key): This extension is conventionally used for files that contain only
         // private keys. Again, it's still PEM-encoded data
-        let key_pem = load_pem_data(Path::new(SSL_PERM_SERVE_KEY_PATH))?;
+        let key_pem = load_pem_data(Path::new(key_path))?;
 
         // Tower: Setting up interceptors
         // Stack of middleware that the service will be wrapped in
@@ -67,6 +72,7 @@ impl GrpcServer {
             .layer(tonic::service::interceptor(Self::request_id_interceptor))
             .into_inner();
 
+        info!("starting... gRPC server :: loaded certificate and private key");
         Server::builder()
             .tls_config(ServerTlsConfig::new().identity(Identity::from_pem(cert_pem, key_pem)))
             .context("Failed to create TLS config")?
@@ -107,7 +113,17 @@ impl GrpcServer {
 }
 
 fn load_pem_data(path: &Path) -> anyhow::Result<Bytes> {
+    debug!("loading pem file from :: path={:?}", path);
     fs::read(path)
         .map(Bytes::from)
         .with_context(|| format!("Failed to read PEM data from {}", path.display()))
+}
+
+fn get_path_from_env_or(env_key: &str, default: &str) -> String {
+    let path_from_env = std::env::var(env_key);
+    if path_from_env.is_err() {
+        warn!("Environment variable {} is missing, will use default", env_key);
+    }
+    let path = path_from_env.expect(default);
+    path
 }

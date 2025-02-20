@@ -1,4 +1,6 @@
+use crate::common::XRF_ENV_KEY;
 use crate::configs::database::DatabaseConfig;
+use crate::Environment;
 use serde::Deserialize;
 use serde_aux::field_attributes::deserialize_number_from_string;
 
@@ -47,7 +49,7 @@ pub fn load_config() -> Result<Configurations, config::ConfigError> {
     let config_path = base_path.join("config");
 
     // load app environment. default to dev (local/dev) if no env is specified
-    let env: Environment = std::env::var("XRF_ENV")
+    let env: Environment = std::env::var(XRF_ENV_KEY)
         .unwrap_or_else(|_| "dev".into())
         .try_into()
         .expect("XRF_ENV env variable is not accepted environment");
@@ -70,36 +72,6 @@ pub fn load_config() -> Result<Configurations, config::ConfigError> {
         .build()?;
 
     // Try converting the configuration values into our Config type
-    config.try_deserialize::<Configurations>()
-}
-
-enum Environment {
-    Dev,
-    Live,
-    Staging,
-    Production,
-}
-
-impl Environment {
-    fn as_str(&self) -> &'static str {
-        match self {
-            Environment::Dev => "dev",
-            Environment::Live => "live",
-            Environment::Staging => "stg",
-            Environment::Production => "prod",
-        }
-    }
-}
-
-impl TryFrom<String> for Environment {
-    type Error = String;
-    fn try_from(env: String) -> Result<Self, Self::Error> {
-        match env.to_lowercase().as_str() {
-            "live" => Ok(Environment::Live),
-            "stg" => Ok(Environment::Staging),
-            "prod" => Ok(Environment::Production),
-            "dev" | "local" => Ok(Environment::Dev),
-            _ => Err(format!("Unknown environment: {}", env)),
-        }
-    }
+    let configurations = config.try_deserialize::<Configurations>()?;
+    Ok(configurations)
 }
