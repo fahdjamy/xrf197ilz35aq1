@@ -4,8 +4,7 @@ use tracing::error;
 use xrf1::configs::load_config;
 use xrf1::startup::Application;
 use xrf1::telemetry::tracing_setup;
-
-use xrf1::context::AppContext;
+use xrf1::AppContext;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
