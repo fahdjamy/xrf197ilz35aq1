@@ -1,13 +1,20 @@
 use std::fmt::{Debug, Display};
 use tokio::task::JoinError;
+use tracing::error;
 use xrf1::configs::load_config;
 use xrf1::startup::Application;
 use xrf1::telemetry::tracing_setup;
+
+use xrf1::context::AppContext;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let config = load_config().expect("Failed to load configurations");
     let _guard = tracing_setup(&config.app.name, config.log.clone());
+    let _ = AppContext::get_or_load().map_err(|err| {
+        error!("Failed to load application context :: err={}", err);
+        return err
+    })?;
 
     let app = Application::build(config)
         .await
@@ -43,7 +50,7 @@ fn report_exit(task_name: &str, outcome: Result<Result<(), impl Debug + Display>
             tracing::info!("{} has exited", task_name)
         }
         Ok(Err(e)) => {
-            tracing::error!(
+            error!(
                 error.cause_chain = ?e,
                 error.message = %e,
                 "{} failed",
@@ -51,7 +58,7 @@ fn report_exit(task_name: &str, outcome: Result<Result<(), impl Debug + Display>
             )
         }
         Err(e) => {
-            tracing::error!(
+            error!(
                 error.cause_chain = ?e,
                 error.message = %e,
                 "{}' task failed to complete",

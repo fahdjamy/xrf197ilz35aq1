@@ -1,6 +1,7 @@
 use crate::common::generate_request_id;
 use crate::configs::GrpcServerConfig;
 use crate::constant::{CERT_PEM_PATH, KEY_PEM_PATH, REQUEST_ID_KEY};
+use crate::context::AppContext;
 use crate::server::grpc::asset::asset_service_server::AssetServiceServer;
 use crate::server::grpc::asset::contract_service_server::ContractServiceServer;
 use crate::server::grpc::services::{AssetServiceManager, ContractServiceManager};
@@ -53,8 +54,8 @@ impl GrpcServer {
 
     pub async fn run_until_stopped(self) -> anyhow::Result<()> {
         info!("starting gRPC server :: port {}", &self.addr.port());
-        let key_path = &get_path_from_env_or(KEY_PEM_PATH, SSL_PEM_SERVE_KEY_PATH);
-        let cert_path = &get_path_from_env_or(CERT_PEM_PATH, SSL_PEM_SERVE_CERT_PATH);
+        let key_path = &get_path_from_env_or(KEY_PEM_PATH, SSL_PEM_SERVE_KEY_PATH)?;
+        let cert_path = &get_path_from_env_or(CERT_PEM_PATH, SSL_PEM_SERVE_CERT_PATH)?;
         // Load the PEM-encoded data directly. pem (Privacy-Enhanced Mail)
         // .crt (Certificate): This extension is conventionally used for files that contain only
         // certs (usually X.509 certificates). It's still PEM-encoded data, just w/ a more specific file ext
@@ -117,11 +118,15 @@ fn load_pem_data(path: &Path) -> anyhow::Result<Bytes> {
         .with_context(|| format!("Failed to read PEM data from {}", path.display()))
 }
 
-fn get_path_from_env_or(env_key: &str, default: &str) -> String {
+fn get_path_from_env_or(env_key: &str, default: &str) -> anyhow::Result<String> {
     let path_from_env = std::env::var(env_key);
     if path_from_env.is_err() {
-        warn!("Environment variable {} is missing, will use default", env_key);
+        let app_env = AppContext::environment();
+        if app_env.is_none() || app_env.clone().unwrap().is_not_local() {
+            return Err(anyhow::anyhow!("Invalid/missing XRF Environment variables"));
+        }
+        warn!("Environment variable {} is missing, will use default :: env={}", env_key, app_env.clone().unwrap());
     }
     let path = path_from_env.expect(default);
-    path
+    Ok(path)
 }
