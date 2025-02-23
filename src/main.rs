@@ -1,7 +1,9 @@
+use anyhow::anyhow;
 use std::fmt::{Debug, Display};
 use tokio::task::JoinError;
 use tracing::error;
 use xrf1::configs::load_config;
+use xrf1::constant::INVALID_SERVER_ID;
 use xrf1::startup::Application;
 use xrf1::telemetry::tracing_setup;
 use xrf1::AppContext;
@@ -10,10 +12,14 @@ use xrf1::AppContext;
 async fn main() -> anyhow::Result<()> {
     let config = load_config().expect("Failed to load configurations");
     let _guard = tracing_setup(&config.app.name, config.log.clone());
-    let _ = AppContext::get_or_load().map_err(|err| {
+    let app_context = AppContext::get_or_load().map_err(|err| {
         error!("Failed to load application context :: err={}", err);
         return err
     })?;
+    if app_context.server_id.is_empty() || app_context.server_id == INVALID_SERVER_ID {
+        error!("Failed to load application context :: err=Invalid server id!");
+        return Err(anyhow!("Failed to load application context :: err=Invalid server id"));
+    }
 
     let app = Application::build(config)
         .await

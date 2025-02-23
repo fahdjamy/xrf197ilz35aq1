@@ -107,10 +107,8 @@ impl AppContext {
                     return Err(ContextError::ConflictingEnvironmentVariables);
                 }
 
-                Ok(AppContext {
-                    environment: env,
-                    server_id: Uuid::new_v4().to_string(),
-                })
+                let server_id = Uuid::new_v4().to_string();
+                Ok(AppContext { environment: env, server_id })
             })();
 
             result.unwrap_or_else(|err| {
@@ -149,4 +147,51 @@ impl AppContext {
         std::env::remove_var(XRF_ENV_KEY); //remove env var
         std::env::remove_var("DATABASE_URL"); //remove env var
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_load_app_context_success() {
+        AppContext::reset(); // Reset before the test
+        assert_eq!(AppContext::environment(), None);
+
+        std::env::set_var(XRF_ENV_KEY, "live");
+        std::env::set_var(XRF_1_POSTGRES_DB_URL_ENV_KEY, "xrf_live_pg_db");
+
+        let result = AppContext::get_or_load();
+        assert!(result.is_ok());
+        let context = result.unwrap();
+        assert!(!context.server_id.is_empty());
+        assert_eq!(context.environment, Environment::Live);
+
+        // Test that subsequent calls return the same instance.
+        let result2 = AppContext::get_or_load();
+        assert!(result2.is_ok());
+        let context2 = result2.unwrap();
+        assert!(std::ptr::eq(context, context2)); // Check for pointer equality
+    }
+
+    // #[test]
+    // fn test_load_missing_xrf_env() {
+    //     AppContext::reset();
+    //     // Don't set XRF_ENV_KEY
+    //     std::env::set_var(XRF_1_POSTGRES_DB_URL_ENV_KEY, "any_db");
+    //
+    //     let result = AppContext::get_or_load();
+    //     assert!(result.is_err());
+    //     assert_eq!(
+    //         result.unwrap_err(),
+    //         ContextError::MissingEnvironment(format!("{} environment variable not set", XRF_ENV_KEY))
+    //     );
+    //     // Check that subsequent calls return the *same* error.
+    //     let result2 = AppContext::get_or_load();
+    //     assert!(result2.is_err());
+    //     assert_eq!(
+    //         result2.unwrap_err(),
+    //         ContextError::MissingEnvironment(format!("{} environment variable not set", XRF_ENV_KEY))
+    //     );
+    // }
 }
