@@ -109,11 +109,25 @@ message DeleteAssetResponse {
   bool deleted = 1;
 }
 
+///// Delete Asset
+
+message TransferAssetRequest {
+  string org_id = 1;
+  string asset_id = 2;
+  string new_owner_fp = 3;
+  string new_owner_org_id = 4;
+}
+
+message TransferAssetResponse {
+  string certificate_id = 1;
+}
+
 service AssetService {
   rpc Create(CreateRequest) returns (CreateResponse);
   rpc UpdateAsset(UpdateAssetRequest) returns (UpdateAssetResponse);
   rpc DeleteAsset(DeleteAssetRequest) returns (DeleteAssetResponse);
   rpc GetAssetById(GetAssetByIdRequest) returns (GetAssetByIdResponse);
+  rpc TransferAsset(TransferAssetRequest) returns (TransferAssetResponse);
   rpc GetAssetsNameLike(GetAssetsNameLikeRequest) returns (GetAssetsNameLikeResponse);
   rpc GetPaginatedAssets(GetPaginatedAssetsRequest) returns (GetPaginatedAssetsResponse);
   rpc GetStreamedAssets(GetStreamedAssetsRequest) returns (stream GetStreamedAssetsResponse);

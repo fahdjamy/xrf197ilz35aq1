@@ -2,9 +2,10 @@ use crate::constant::REQUEST_ID_KEY;
 use crate::core::{create_new_asset, delete_asset_by_id, find_asset_by_id, find_asset_by_id_and_org_id, find_assets_name_like, get_all_assets, update_asset, Asset, DatabaseError, DomainError, OrderType, UpdateAssetRequest};
 use crate::server::grpc::asset::asset_service_server::AssetService;
 use crate::server::grpc::asset::{Asset as GrpcAsset, CreateRequest, CreateResponse,
-                                 DeleteAssetRequest, DeleteAssetResponse, GetAssetByIdRequest, GetAssetByIdResponse,
-                                 GetAssetsNameLikeRequest, GetAssetsNameLikeResponse, GetPaginatedAssetsRequest,
-                                 GetPaginatedAssetsResponse, GetStreamedAssetsRequest, GetStreamedAssetsResponse, UpdateAssetRequest as GrpcUpdateAsset, UpdateAssetResponse};
+                                 DeleteAssetRequest, DeleteAssetResponse,
+                                 GetAssetByIdRequest, GetAssetByIdResponse, GetAssetsNameLikeRequest, GetAssetsNameLikeResponse,
+                                 GetPaginatedAssetsRequest, GetPaginatedAssetsResponse, GetStreamedAssetsRequest,
+                                 GetStreamedAssetsResponse, TransferAssetRequest, TransferAssetResponse, UpdateAssetRequest as GrpcUpdateAsset, UpdateAssetResponse};
 use crate::server::grpc::interceptors::trace_request;
 use crate::server::grpc::{get_xrf_user_auth_header, XRF_USER_FINGERPRINT};
 use prost_types::Timestamp;
@@ -202,6 +203,12 @@ impl AssetService for AssetServiceManager {
         Ok(Response::new(response))
     }
 
+    async fn transfer_asset(&self, request: Request<TransferAssetRequest>)
+                            -> Result<Response<TransferAssetResponse>, Status> {
+        trace_request!(request, "transfer_asset");
+        todo!()
+    }
+
     async fn get_assets_name_like(&self, request: Request<GetAssetsNameLikeRequest>) -> Result<Response<GetAssetsNameLikeResponse>, Status> {
         trace_request!(request, "get_assets_name_like");
         let req = request.into_inner();
@@ -252,7 +259,6 @@ impl AssetService for AssetServiceManager {
     type GetStreamedAssetsStream = Pin<
         Box<
             dyn Stream<Item=Result<GetStreamedAssetsResponse, Status>> + Send + 'static>>;
-
     async fn get_streamed_assets(&self, request: Request<GetStreamedAssetsRequest>)
                                  -> Result<Response<Self::GetStreamedAssetsStream>, Status> {
         trace_request!(request, "get_streamed_assets");
