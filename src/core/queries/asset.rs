@@ -264,6 +264,23 @@ pub async fn delete_asset_by_id(asset_id: &str, pg_pool: &PgPool) -> Result<bool
     Ok(result.rows_affected() == 1)
 }
 
+#[tracing::instrument(level = "debug", skip(pg_pool, asset_id, updated_by))]
+pub async fn transfer_asset_query(asset_id: &str,
+                                  updated_by: &str, new_org: &str, pg_pool: &PgPool)
+                                  -> Result<bool, DatabaseError> {
+    let result = sqlx::query!(r#"
+    UPDATE asset
+    SET organization = $1, updated_by = $2 WHERE id = $3
+"#,
+        new_org,
+        updated_by,
+        asset_id,
+    )
+        .execute(pg_pool)
+        .await?;
+    Ok(result.rows_affected() == 1)
+}
+
 #[tracing::instrument(level = "debug", skip(pg_pool, asset))]
 pub async fn update_asset(
     asset_id: &str,

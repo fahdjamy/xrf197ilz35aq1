@@ -1,5 +1,5 @@
 use crate::constant::REQUEST_ID_KEY;
-use crate::core::{create_new_asset, delete_asset_by_id, find_asset_by_id, find_asset_by_id_and_org_id, find_assets_name_like, get_all_assets, update_asset, Asset, DatabaseError, DomainError, OrderType, UpdateAssetRequest};
+use crate::core::{create_new_asset, delete_asset_by_id, find_asset_by_id, find_asset_by_id_and_org_id, find_assets_name_like, get_all_assets, transfer_asset_query, update_asset, Asset, DatabaseError, DomainError, OrderType, UpdateAssetRequest};
 use crate::server::grpc::asset::asset_service_server::AssetService;
 use crate::server::grpc::asset::{Asset as GrpcAsset, CreateRequest, CreateResponse,
                                  DeleteAssetRequest, DeleteAssetResponse,
@@ -206,7 +206,31 @@ impl AssetService for AssetServiceManager {
     async fn transfer_asset(&self, request: Request<TransferAssetRequest>)
                             -> Result<Response<TransferAssetResponse>, Status> {
         trace_request!(request, "transfer_asset");
-        todo!()
+
+        let req = request.into_inner();
+        info!("starting asset transfer process :: asset id = {}", &req.asset_id);
+        let asset_id = req.asset_id;
+
+        let _ = find_asset_by_id_and_org_id(&asset_id, &req.org_id, &self.pg_pool)
+            .await
+            .map_err(|e| match e {
+                DatabaseError::NotFound => Status::not_found("asset not found"),
+                _ => Status::unknown("server error"),
+            })?;
+        let transferred = transfer_asset_query(&asset_id, "", &req.org_id, &self.pg_pool)
+            .await
+            .map_err(|e| match e {
+                DatabaseError::NotFound => Status::not_found("asset not found"),
+                _ => Status::unknown("server error"),
+            })?;
+
+        if !transferred {
+            return Err(Status::internal("asset transfer failed"));
+        }
+
+        Ok(Response::new(TransferAssetResponse {
+            certificate_id: "".to_string(),
+        }))
     }
 
     async fn get_assets_name_like(&self, request: Request<GetAssetsNameLikeRequest>) -> Result<Response<GetAssetsNameLikeResponse>, Status> {
