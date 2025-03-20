@@ -203,6 +203,9 @@ impl AssetService for AssetServiceManager {
         Ok(Response::new(response))
     }
 
+    /// Transferring an asset should only happen if
+    /// 1. It is being transferred from one user in the same org to another
+    /// 2. If it is being transferred from one org to another.
     async fn transfer_asset(&self, request: Request<TransferAssetRequest>)
                             -> Result<Response<TransferAssetResponse>, Status> {
         trace_request!(request, "transfer_asset");
@@ -211,13 +214,19 @@ impl AssetService for AssetServiceManager {
         info!("starting asset transfer process :: asset id = {}", &req.asset_id);
         let asset_id = req.asset_id;
 
-        let _ = find_asset_by_id_and_org_id(&asset_id, &req.org_id, &self.pg_pool)
+        let asset = find_asset_by_id_and_org_id(&asset_id, &req.org_id, &self.pg_pool)
             .await
             .map_err(|e| match e {
                 DatabaseError::NotFound => Status::not_found("asset not found"),
                 _ => Status::unknown("server error"),
             })?;
-        let transferred = transfer_asset_query(&asset_id, "", &req.org_id, &self.pg_pool)
+
+        // Do not transfer an asset if it's the same org and it's the same user
+        if asset.organization == req.new_owner_org_id && asset.updated_by == req.new_owner_org_id {
+            return Err(Status::already_exists("asset does not to be transferred, already exists"));
+        }
+
+        let transferred = transfer_asset_query(&asset_id, &req.new_owner_fp, &req.new_owner_org_id, &self.pg_pool)
             .await
             .map_err(|e| match e {
                 DatabaseError::NotFound => Status::not_found("asset not found"),
