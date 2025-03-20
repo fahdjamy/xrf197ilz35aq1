@@ -17,6 +17,15 @@ impl Display for ContractVersion {
     }
 }
 
+impl From<String> for ContractVersion {
+    fn from(value: String) -> Self {
+        match value.as_str() {
+            "V1" => ContractVersion::V1,
+            _ => ContractVersion::V1,
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Contract {
     pub id: String,

@@ -221,7 +221,7 @@ impl AssetService for AssetServiceManager {
                 _ => Status::unknown("server error"),
             })?;
 
-        // Do not transfer an asset if it's the same org and it's the same user
+        // Do not transfer an asset if it's the same org, and it's the same user
         if asset.organization == req.new_owner_org_id && asset.updated_by == req.new_owner_org_id {
             return Err(Status::already_exists("asset does not to be transferred, already exists"));
         }

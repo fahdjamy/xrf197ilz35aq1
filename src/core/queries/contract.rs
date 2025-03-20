@@ -1,4 +1,4 @@
-use crate::core::{Contract, CurrencyList, DatabaseError};
+use crate::core::{Contract, ContractVersion, CurrencyList, DatabaseError};
 use chrono::{DateTime, Utc};
 use sqlx::PgPool;
 use std::fmt::Display;
@@ -14,9 +14,11 @@ struct DbContract {
     pub asset_id: String,
     pub update_count: i32,
     pub updated_by: String,
+    pub royalty_percentage: f32,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub anonymous_buyer_only: bool,
+    pub royalty_receiver: String,
     pub accepted_currency: CurrencyList, // Change to Vec<String> for database compatibility
 }
 
@@ -33,11 +35,35 @@ impl From<Contract> for DbContract {
             updated_at: contract.updated_at,
             update_count: contract.update_count,
             version: contract.version.to_string(),
+            royalty_percentage: contract.royalty_percentage,
+            royalty_receiver: contract.royalty_receiver_id,
             anonymous_buyer_only: contract.anonymous_buyer_only,
             accepted_currency: CurrencyList(contract.accepted_currency
                 .into_iter()
                 .map(|c| c)
                 .collect()), // Convert to Vec<String>
+        }
+    }
+}
+
+impl From<DbContract> for Contract {
+    fn from(db_contract: DbContract) -> Self {
+        let version = ContractVersion::from(db_contract.version);
+        Contract {
+            version,
+            id: db_contract.id,
+            details: db_contract.content,
+            summary: db_contract.summary,
+            asset_id: db_contract.asset_id,
+            min_price: db_contract.min_price,
+            created_at: db_contract.created_at,
+            updated_at: db_contract.updated_at,
+            updated_by: db_contract.updated_by,
+            update_count: db_contract.update_count,
+            royalty_receiver_id: db_contract.royalty_receiver,
+            royalty_percentage: db_contract.royalty_percentage,
+            anonymous_buyer_only: db_contract.anonymous_buyer_only,
+            accepted_currency: db_contract.accepted_currency.0.into_iter().collect(),
         }
     }
 }
@@ -51,7 +77,7 @@ impl Display for DbContract {
 #[tracing::instrument(skip(pg_pool, contract))]
 pub async fn create_contract(pg_pool: &PgPool, contract: Contract) -> Result<bool, DatabaseError> {
     info!("creating contract :: contractId={} :: assetId={}", contract.id, contract.asset_id);
-    let contract_asset_exists = check_if_contract_exits_for_asset(pg_pool, &contract.asset_id)
+    let contract_asset_exists = check_if_asset_has_contract(pg_pool, &contract.asset_id)
         .await
         .map_err(|err| {
             tracing::error!("failed to create contract: {:?}", err);
@@ -100,7 +126,7 @@ pub async fn create_contract(pg_pool: &PgPool, contract: Contract) -> Result<boo
 }
 
 #[tracing::instrument(skip(pg_pool))]
-async fn check_if_contract_exits_for_asset(pg_pool: &PgPool, asset_id: &str) -> Result<bool, DatabaseError> {
+async fn check_if_asset_has_contract(pg_pool: &PgPool, asset_id: &str) -> Result<bool, DatabaseError> {
     info!("checking for contract with assetId={}", asset_id);
     // EXISTS is a SQL operator (a keyword), not a field. It's used to test for the existence of rows in a subquery.
     // The 1 in SELECT 1 is an arbitrary placeholder value that indicates the existence of a row without needing to retrieve the actual row data.
