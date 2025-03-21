@@ -14,11 +14,11 @@ struct DbContract {
     pub asset_id: String,
     pub update_count: i32,
     pub updated_by: String,
-    pub royalty_percentage: f32,
+    pub royalty_percentage: f64,
+    pub royalty_receiver: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub anonymous_buyer_only: bool,
-    pub royalty_receiver: String,
     pub accepted_currency: CurrencyList, // Change to Vec<String> for database compatibility
 }
 
@@ -35,9 +35,9 @@ impl From<Contract> for DbContract {
             updated_at: contract.updated_at,
             update_count: contract.update_count,
             version: contract.version.to_string(),
-            royalty_percentage: contract.royalty_percentage,
             royalty_receiver: contract.royalty_receiver_id,
             anonymous_buyer_only: contract.anonymous_buyer_only,
+            royalty_percentage: contract.royalty_percentage as f64,
             accepted_currency: CurrencyList(contract.accepted_currency
                 .into_iter()
                 .map(|c| c)
@@ -53,17 +53,17 @@ impl From<DbContract> for Contract {
             version,
             id: db_contract.id,
             details: db_contract.content,
-            summary: db_contract.summary,
             asset_id: db_contract.asset_id,
             min_price: db_contract.min_price,
             created_at: db_contract.created_at,
             updated_at: db_contract.updated_at,
             updated_by: db_contract.updated_by,
             update_count: db_contract.update_count,
-            royalty_receiver_id: db_contract.royalty_receiver,
-            royalty_percentage: db_contract.royalty_percentage,
             anonymous_buyer_only: db_contract.anonymous_buyer_only,
+            summary: db_contract.summary.unwrap_or_else(|| "".to_string()),
             accepted_currency: db_contract.accepted_currency.0.into_iter().collect(),
+            royalty_percentage: db_contract.royalty_percentage.unwrap_or_else(|| 0.0) as f32,
+            royalty_receiver_id: db_contract.royalty_receiver.unwrap_or_else(|| "".to_string()),
         }
     }
 }
@@ -89,9 +89,8 @@ pub async fn create_contract(pg_pool: &PgPool, contract: Contract) -> Result<boo
 
     let db_contract: DbContract = DbContract::from(contract);
     info!("creating contract :: currencyList={}", db_contract.accepted_currency);
-    let result = sqlx::query!(
-        r#"
-        INSERT INTO contract (
+    let result = sqlx::query!(r#"
+INSERT INTO contract (
                       id,
                       content,
                       summary,
@@ -102,10 +101,12 @@ pub async fn create_contract(pg_pool: &PgPool, contract: Contract) -> Result<boo
                       updated_by,
                       updated_at,
                       update_count,
+                      royalty_receiver,
                       accepted_currency,
+                      royalty_percentage,
                       anonymous_buyer_only
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
         "#,
         db_contract.id,
         db_contract.content,
@@ -117,7 +118,9 @@ pub async fn create_contract(pg_pool: &PgPool, contract: Contract) -> Result<boo
         db_contract.updated_by,
         db_contract.updated_at,
         db_contract.update_count,
+        db_contract.royalty_receiver,
         &db_contract.accepted_currency as &CurrencyList,
+        db_contract.royalty_percentage,
         db_contract.anonymous_buyer_only,
     )
         .execute(pg_pool)

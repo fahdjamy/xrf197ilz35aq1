@@ -177,8 +177,8 @@ impl Type<Postgres> for CurrencyList {
 impl<'q> Encode<'q, Postgres> for CurrencyList {
     fn encode_by_ref(&self, buf: &mut <Postgres as Database>::ArgumentBuffer<'q>) -> Result<IsNull, BoxDynError> {
         // Use sqlx's array encoding to directly encode the Vec<Currency>
-        // directly encode the inner self.0 (which is a Vec<Currency>) using its own Encode 
-        // implementation. Vec already implements Encode for arrays, 
+        // directly encode the inner self.0 (which is a Vec<Currency>) using its own Encode
+        // implementation. Vec already implements Encode for arrays,
         // and Currency implements Type (which transitively provides Encode and Decode).
         <Vec<Currency> as Encode<'_, Postgres>>::encode(self.0.clone(), buf)
     }
