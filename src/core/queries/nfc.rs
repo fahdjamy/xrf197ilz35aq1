@@ -56,6 +56,24 @@ pub async fn create_nfc(
     Ok(true) // Return true, we know both operations succeeded at this point.
 }
 
+#[tracing::instrument(skip(pg_pool, asset_id))]
+pub async fn get_nfc_by_asset_id(asset_id: &str, pg_pool: &PgPool) -> Result<NFC, DatabaseError> {
+    info!("Getting nfc by id={}", asset_id);
+    let row = sqlx::query_as!(
+        NFC,
+        r#"
+        SELECT id, asset_id, cert, created_at 
+        FROM nfc 
+        WHERE asset_id = $1
+        "#,
+        asset_id
+    )
+        .fetch_one(pg_pool)
+        .await?;
+
+    Ok(row)
+}
+
 #[tracing::instrument(skip(transaction, trail))]
 pub async fn create_nfc_trail(
     transaction: &mut PgTransaction<'_>,

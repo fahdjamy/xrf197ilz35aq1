@@ -9,7 +9,7 @@ pub use asset::{
     update_asset
 };
 pub use contract::{create_contract, get_contract_by_asset_id};
-pub use nfc::{create_nfc, create_nfc_trail, get_nfc_by_id, get_nfc_trails_by_nfc_id};
+pub use nfc::{create_nfc, create_nfc_trail, get_nfc_by_asset_id, get_nfc_by_id, get_nfc_trails_by_nfc_id};
 pub use ordering::OrderType;
 use sqlx::{Postgres, Transaction};
 
