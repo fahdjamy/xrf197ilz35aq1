@@ -124,8 +124,8 @@ INSERT INTO contract (
                       royalty_percentage,
                       anonymous_buyer_only
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-        "#,
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+"#,
         db_contract.id,
         db_contract.content,
         db_contract.summary,
@@ -183,9 +183,9 @@ SELECT id,
        updated_by,
        royalty_percentage,
        created_at,
-        anonymous_buyer_only,
-        updated_at,
-        royalty_receiver,
+       anonymous_buyer_only,
+       updated_at,
+       royalty_receiver,
        accepted_currency as "accepted_currency: CurrencyList"
 FROM contract 
 WHERE asset_id=$1"#,

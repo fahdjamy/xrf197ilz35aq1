@@ -230,6 +230,7 @@ impl AssetService for AssetServiceManager {
             .await
             .map_err(|e| match e {
                 DatabaseError::NotFound => Status::not_found("asset not found"),
+                DatabaseError::InvalidArgument(msg) => Status::invalid_argument(msg),
                 _ => Status::unknown("server error"),
             })?;
 

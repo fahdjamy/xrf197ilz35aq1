@@ -23,17 +23,14 @@ impl Display for NFCTrail {
 }
 
 impl NFCTrail {
-    fn new(
-        nfc_id: String,
-        user_fp: String,
-        asset_id: String,
-        transferred_on: DateTime<Utc>,
-    ) -> Self {
+    pub fn new(
+        nfc_id: String, user_fp: String, asset_id: String) -> Self {
+        let now = Utc::now();
         Self {
             nfc_id,
             user_fp,
             asset_id,
-            transferred_on,
+            transferred_on: now,
         }
     }
 }
@@ -81,8 +78,7 @@ pub async fn create_nfc(
     }
 
     // create new nfc trail history if nfc is created
-    let now = Utc::now();
-    let trail = NFCTrail::new(nf_cert.id, user_fp, nf_cert.asset_id, now);
+    let trail = NFCTrail::new(nf_cert.id, user_fp, nf_cert.asset_id);
     let nfc_trail_created = create_nfc_trail(&mut transaction, &trail).await?;
     if !nfc_trail_created {
         transaction.rollback().await?;
@@ -94,7 +90,7 @@ pub async fn create_nfc(
 }
 
 #[tracing::instrument(skip(transaction, trail))]
-async fn create_nfc_trail(
+pub async fn create_nfc_trail(
     transaction: &mut PgTransaction<'_>,
     trail: &NFCTrail,
 ) -> Result<bool, DatabaseError> {

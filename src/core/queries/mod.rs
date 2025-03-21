@@ -8,8 +8,8 @@ pub use asset::{
     find_assets_name_like, find_assets_symbol_like, get_all_assets, transfer_asset_query,
     update_asset
 };
-pub use contract::create_contract;
-pub use nfc::{create_nfc, get_nfc_by_id, get_nfc_trails_by_nfc_id};
+pub use contract::{create_contract, get_contract_by_asset_id};
+pub use nfc::{create_nfc, create_nfc_trail, get_nfc_by_id, get_nfc_trails_by_nfc_id, NFCTrail};
 pub use ordering::OrderType;
 use sqlx::{Postgres, Transaction};
 
