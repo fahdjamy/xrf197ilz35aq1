@@ -6,7 +6,7 @@ use chrono::{DateTime, Utc};
 use getrandom;
 use ring::rand::SecureRandom;
 use sha2::{Digest, Sha512};
-use std::fmt::Display;
+use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 use std::time::SystemTime;
 
@@ -36,9 +36,40 @@ impl NFC {
 }
 
 impl Display for NFC {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "Certificate: Id: {}, AssetId: {}, Created At: {}",
                self.id, self.asset_id, self.created_at)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct NFCTrail {
+    pub nfc_id: String,
+    pub user_fp: String,
+    pub asset_id: String,
+    pub transferred_on: DateTime<Utc>,
+}
+
+impl Display for NFCTrail {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "nfc '{}' transferred on - '{}'",
+            self.nfc_id, self.transferred_on
+        )
+    }
+}
+
+impl NFCTrail {
+    pub fn new(
+        nfc_id: String, user_fp: String, asset_id: String) -> Self {
+        let now = Utc::now();
+        Self {
+            nfc_id,
+            user_fp,
+            asset_id,
+            transferred_on: now,
+        }
     }
 }
 

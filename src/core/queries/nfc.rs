@@ -1,39 +1,6 @@
-use crate::core::{DatabaseError, PgTransaction, NFC};
-use chrono::{DateTime, Utc};
+use crate::core::{DatabaseError, NFCTrail, PgTransaction, NFC};
 use sqlx::PgPool;
-use std::fmt::{Display, Formatter};
 use tracing::info;
-
-#[derive(Debug, Clone)]
-pub struct NFCTrail {
-    pub nfc_id: String,
-    user_fp: String,
-    asset_id: String,
-    transferred_on: DateTime<Utc>,
-}
-
-impl Display for NFCTrail {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "nfc '{}' transferred on - '{}'",
-            self.nfc_id, self.transferred_on
-        )
-    }
-}
-
-impl NFCTrail {
-    pub fn new(
-        nfc_id: String, user_fp: String, asset_id: String) -> Self {
-        let now = Utc::now();
-        Self {
-            nfc_id,
-            user_fp,
-            asset_id,
-            transferred_on: now,
-        }
-    }
-}
 
 #[tracing::instrument(skip(nfc_id, pool))]
 pub async fn get_nfc_by_id(nfc_id: &str, pool: &PgPool) -> Result<NFC, DatabaseError> {
