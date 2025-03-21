@@ -22,6 +22,24 @@ struct DbContract {
     pub accepted_currency: CurrencyList, // Change to Vec<String> for database compatibility
 }
 
+#[derive(Debug)]
+struct DbContractResponse {
+    pub id: String,
+    pub content: String,
+    pub min_price: f64,
+    pub version: String,
+    pub asset_id: String,
+    pub update_count: i32,
+    pub updated_by: String,
+    pub summary: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub anonymous_buyer_only: bool,
+    pub royalty_percentage: Option<f64>,
+    pub royalty_receiver: Option<String>,
+    pub accepted_currency: CurrencyList, // Change to Vec<String> for database compatibility
+}
+
 impl From<Contract> for DbContract {
     fn from(contract: Contract) -> Self {
         DbContract {
@@ -46,8 +64,8 @@ impl From<Contract> for DbContract {
     }
 }
 
-impl From<DbContract> for Contract {
-    fn from(db_contract: DbContract) -> Self {
+impl From<DbContractResponse> for Contract {
+    fn from(db_contract: DbContractResponse) -> Self {
         let version = ContractVersion::from(db_contract.version);
         Contract {
             version,
@@ -147,4 +165,32 @@ async fn check_if_asset_has_contract(pg_pool: &PgPool, asset_id: &str) -> Result
         .await?;
 
     Ok(result.exists)
+}
+
+#[tracing::instrument(skip(pg_pool, asset_id))]
+pub async fn get_contract_by_asset_id(pg_pool: &PgPool, asset_id: &str) -> Result<Contract, DatabaseError> {
+    info!("getting contract by asset id={}", asset_id);
+    let result = sqlx::query_as!(
+        DbContractResponse,
+        r#"
+SELECT id,
+       content,
+       min_price,
+       summary,
+       version,
+       asset_id,
+       update_count,
+       updated_by,
+       royalty_percentage,
+       created_at,
+        anonymous_buyer_only,
+        updated_at,
+        royalty_receiver,
+       accepted_currency as "accepted_currency: CurrencyList"
+FROM contract 
+WHERE asset_id=$1"#,
+        asset_id
+    ).fetch_one(pg_pool)
+        .await?;
+    Ok(result.into())
 }
