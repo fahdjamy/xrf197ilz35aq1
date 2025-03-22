@@ -265,9 +265,12 @@ pub async fn delete_asset_by_id(asset_id: &str, pg_pool: &PgPool) -> Result<bool
     Ok(result.rows_affected() == 1)
 }
 
-#[tracing::instrument(level = "debug", skip(pg_pool, asset_id, updated_by))]
-pub async fn transfer_asset_query(asset_id: &str, updated_by: &str, new_org: &str, pg_pool: &PgPool)
-                                  -> Result<bool, DatabaseError> {
+#[tracing::instrument(level = "debug", skip(pg_pool, asset_id, new_owner_fp))]
+pub async fn transfer_asset_query(new_org: &str,
+                                  asset_id: &str,
+                                  new_owner_fp: &str,
+                                  pg_pool: &PgPool)
+                                  -> Result<NFC, DatabaseError> {
     let nfc = get_nfc_by_asset_id(asset_id, pg_pool)
         .await
         .map_err(|e| match e {
@@ -280,12 +283,12 @@ pub async fn transfer_asset_query(asset_id: &str, updated_by: &str, new_org: &st
     UPDATE asset
     SET organization = $1, updated_by = $2 WHERE id = $3
 "#,
-        new_org, updated_by, asset_id,
+        new_org, new_owner_fp, asset_id,
     )
         .execute(&mut *transaction)
         .await?;
 
-    let nfc_trail = NFCTrail::new(nfc.id, new_org.to_string(), updated_by.to_string());
+    let nfc_trail = NFCTrail::new(nfc.id.clone(), new_org.to_string(), new_owner_fp.to_string());
 
     let trail_created = create_nfc_trail(&mut transaction, &nfc_trail).await?;
 
@@ -300,7 +303,7 @@ pub async fn transfer_asset_query(asset_id: &str, updated_by: &str, new_org: &st
     }
 
     transaction.commit().await?;
-    Ok(result.rows_affected() == 1)
+    Ok(nfc)
 }
 
 #[tracing::instrument(level = "debug", skip(pg_pool, asset))]

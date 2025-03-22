@@ -1,5 +1,5 @@
 use crate::constant::REQUEST_ID_KEY;
-use crate::core::{create_new_asset, delete_asset_by_id, find_asset_by_id, find_asset_by_id_and_org_id, find_assets_name_like, get_all_assets, transfer_asset_query, update_asset, Asset, DatabaseError, DomainError, OrderType, UpdateAssetRequest};
+use crate::core::{create_new_asset, delete_asset_by_id, find_asset_by_id, find_asset_by_id_and_org_id, find_assets_name_like, get_all_assets, orchestrate_transfer_asset, transfer_asset_query, update_asset, Asset, DatabaseError, DomainError, OrchestrateError, OrderType, UpdateAssetRequest};
 use crate::server::grpc::asset::asset_service_server::AssetService;
 use crate::server::grpc::asset::{Asset as GrpcAsset, CreateRequest, CreateResponse,
                                  DeleteAssetRequest, DeleteAssetResponse,
@@ -203,44 +203,26 @@ impl AssetService for AssetServiceManager {
         Ok(Response::new(response))
     }
 
-    /// Transferring an asset should only happen if
-    /// 1. It is being transferred from one user in the same org to another
-    /// 2. If it is being transferred from one org to another.
     async fn transfer_asset(&self, request: Request<TransferAssetRequest>)
                             -> Result<Response<TransferAssetResponse>, Status> {
         trace_request!(request, "transfer_asset");
 
         let req = request.into_inner();
-        info!("starting asset transfer process :: asset id = {}", &req.asset_id);
+        let org_id = req.org_id;
         let asset_id = req.asset_id;
-
-        let asset = find_asset_by_id_and_org_id(&asset_id, &req.org_id, &self.pg_pool)
+        let new_owner_id = req.new_owner_fp;
+        let new_org_owner = req.new_owner_org_id;
+        let nfc = orchestrate_transfer_asset(&org_id, &asset_id, &new_org_owner,
+                                             &new_owner_id, &self.pg_pool)
             .await
             .map_err(|e| match e {
-                DatabaseError::NotFound => Status::not_found("asset not found"),
-                _ => Status::unknown("server error"),
+                OrchestrateError::NotFoundError(err) => Status::not_found(err),
+                OrchestrateError::ServerError(err) => Status::internal(err.to_string()),
+                OrchestrateError::InvalidArgument(msg) => Status::invalid_argument(msg),
+                OrchestrateError::DatabaseError(err) => Status::internal(err.to_string()),
             })?;
 
-        // Do not transfer an asset if it's the same org, and it's the same user
-        if asset.organization == req.new_owner_org_id && asset.updated_by == req.new_owner_org_id {
-            return Err(Status::already_exists("asset does not to be transferred, already exists"));
-        }
-
-        let transferred = transfer_asset_query(&asset_id, &req.new_owner_fp, &req.new_owner_org_id, &self.pg_pool)
-            .await
-            .map_err(|e| match e {
-                DatabaseError::NotFound => Status::not_found("asset not found"),
-                DatabaseError::InvalidArgument(msg) => Status::invalid_argument(msg),
-                _ => Status::unknown("server error"),
-            })?;
-
-        if !transferred {
-            return Err(Status::internal("asset transfer failed"));
-        }
-
-        Ok(Response::new(TransferAssetResponse {
-            certificate_id: "".to_string(),
-        }))
+        Ok(Response::new(TransferAssetResponse { certificate_id: nfc.id }))
     }
 
     async fn get_assets_name_like(&self, request: Request<GetAssetsNameLikeRequest>) -> Result<Response<GetAssetsNameLikeResponse>, Status> {
