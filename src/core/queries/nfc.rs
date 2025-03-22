@@ -1,6 +1,6 @@
 use crate::core::{DatabaseError, NFCTrail, PgTransaction, NFC};
-use sqlx::PgPool;
-use tracing::info;
+use sqlx::{Executor, PgPool, Postgres};
+use tracing::{debug, info};
 
 #[tracing::instrument(skip(nfc_id, pool))]
 pub async fn get_nfc_by_id(nfc_id: &str, pool: &PgPool) -> Result<NFC, DatabaseError> {
@@ -25,6 +25,17 @@ pub async fn create_nfc(
     user_fp: String,
 ) -> Result<bool, DatabaseError> {
     info!("Creating nfc :: id={}", &nf_cert.id);
+    let nfc = get_nfc_by_asset_id(&nf_cert.asset_id, &mut *transaction)
+        .await
+        .map_err(|e| match e {
+            DatabaseError::NotFound => debug!("Can not find nfc by id"),
+            _ => debug!("ignoring error: {:?}", e),
+        });
+    if !nfc.is_err() {
+        transaction.rollback().await?;
+        return Err(DatabaseError::TransactionStepError("Asset already has an nfc. rolling back".to_string()));
+    }
+
     let result = sqlx::query!(
         r#"
         INSERT INTO nfc (id, cert, asset_id, created_at)
@@ -57,13 +68,16 @@ pub async fn create_nfc(
 }
 
 #[tracing::instrument(skip(pg_pool, asset_id))]
-pub async fn get_nfc_by_asset_id(asset_id: &str, pg_pool: &PgPool) -> Result<NFC, DatabaseError> {
+pub async fn get_nfc_by_asset_id<'a, E>(asset_id: &str, pg_pool: E) -> Result<NFC, DatabaseError>
+where
+    E: Executor<'a, Database=Postgres>,
+{
     info!("Getting nfc by id={}", asset_id);
     let row = sqlx::query_as!(
         NFC,
         r#"
-        SELECT id, asset_id, cert, created_at 
-        FROM nfc 
+        SELECT id, asset_id, cert, created_at
+        FROM nfc
         WHERE asset_id = $1
         "#,
         asset_id

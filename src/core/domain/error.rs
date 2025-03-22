@@ -36,6 +36,7 @@ pub enum DatabaseError {
     UniqueViolation,
     ForeignKeyViolation,
     RecordExists(String),
+    InvalidRecordState(String),
     TransactionStepError(String),
     // ... other specific database errors
     Configuration(String), // To capture configuration errors
