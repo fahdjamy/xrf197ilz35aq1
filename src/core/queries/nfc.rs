@@ -31,7 +31,7 @@ pub async fn create_nfc(
             DatabaseError::NotFound => debug!("Can not find nfc by id"),
             _ => debug!("ignoring error: {:?}", e),
         });
-    if !nfc.is_err() {
+    if nfc.is_ok() {
         transaction.rollback().await?;
         return Err(DatabaseError::TransactionStepError("Asset already has an nfc. rolling back".to_string()));
     }
@@ -84,6 +84,7 @@ where
     )
         .fetch_one(pg_pool)
         .await?;
+    dbg!(&row);
 
     Ok(row)
 }

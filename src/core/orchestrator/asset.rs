@@ -1,4 +1,5 @@
-use crate::core::{find_asset_by_id_and_org_id, get_contract_by_asset_id, transfer_asset_query, DatabaseError, OrchestrateError, NFC};
+use crate::core::{find_asset_by_id_and_org_id, get_contract_by_asset_id, transfer_asset_query,
+                  DatabaseError, OrchestrateError, NFC};
 use sqlx::PgPool;
 use tracing::info;
 
