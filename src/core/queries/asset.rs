@@ -1,4 +1,5 @@
-use crate::core::{create_nfc, Asset, DatabaseError, OrderType, UpdateAssetRequest, NFC};
+use crate::core::{create_nfc, create_nfc_trail, get_nfc_by_asset_id,
+                  Asset, DatabaseError, NFCTrail, OrderType, UpdateAssetRequest, NFC};
 use anyhow::anyhow;
 use chrono::Utc;
 use sqlx::{PgPool, QueryBuilder};
@@ -265,19 +266,40 @@ pub async fn delete_asset_by_id(asset_id: &str, pg_pool: &PgPool) -> Result<bool
 }
 
 #[tracing::instrument(level = "debug", skip(pg_pool, asset_id, updated_by))]
-pub async fn transfer_asset_query(asset_id: &str,
-                                  updated_by: &str, new_org: &str, pg_pool: &PgPool)
+pub async fn transfer_asset_query(asset_id: &str, updated_by: &str, new_org: &str, pg_pool: &PgPool)
                                   -> Result<bool, DatabaseError> {
+    let nfc = get_nfc_by_asset_id(asset_id, pg_pool)
+        .await
+        .map_err(|e| match e {
+            DatabaseError::NotFound => DatabaseError::InvalidRecordState("Invalid asset without nfc".to_string()),
+            _ => DatabaseError::Unknown("something went wrong".to_string())
+        })?;
+
+    let mut transaction = pg_pool.begin().await?;
     let result = sqlx::query!(r#"
     UPDATE asset
     SET organization = $1, updated_by = $2 WHERE id = $3
 "#,
-        new_org,
-        updated_by,
-        asset_id,
+        new_org, updated_by, asset_id,
     )
-        .execute(pg_pool)
+        .execute(&mut *transaction)
         .await?;
+
+    let nfc_trail = NFCTrail::new(nfc.id, new_org.to_string(), updated_by.to_string());
+
+    let trail_created = create_nfc_trail(&mut transaction, &nfc_trail).await?;
+
+    if trail_created {
+        transaction.rollback().await?;
+        return Err(DatabaseError::TransactionStepError("failed to create NFC trail and rolled back".to_string()));
+    }
+
+    if result.rows_affected() != 1 {
+        transaction.rollback().await?;
+        return Err(DatabaseError::TransactionStepError("Failed to transfer asset and rolled back".to_string()));
+    }
+
+    transaction.commit().await?;
     Ok(result.rows_affected() == 1)
 }
 
