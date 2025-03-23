@@ -168,7 +168,7 @@ async fn check_if_asset_has_contract(pg_pool: &PgPool, asset_id: &str) -> Result
 }
 
 #[tracing::instrument(skip(pg_pool, asset_id))]
-pub async fn get_contract_by_asset_id(asset_id: &str, pg_pool: &PgPool) -> Result<Contract, DatabaseError> {
+pub async fn find_contract_by_asset_id(asset_id: &str, pg_pool: &PgPool) -> Result<Contract, DatabaseError> {
     info!("getting contract by asset id={}", asset_id);
     let result = sqlx::query_as!(
         DbContractResponse,

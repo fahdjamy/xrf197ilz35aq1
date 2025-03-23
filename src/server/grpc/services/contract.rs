@@ -1,5 +1,5 @@
 use crate::constant::REQUEST_ID_KEY;
-use crate::core::{create_contract, find_asset_by_id, get_contract_by_asset_id, Contract, Currency, DatabaseError};
+use crate::core::{create_contract, find_asset_by_id, find_contract_by_asset_id, Contract, Currency, DatabaseError};
 use crate::server::grpc::asset::contract_service_server::ContractService;
 use crate::server::grpc::asset::{ContractResponse, CreateContractRequest, CreateContractResponse, FindContractRequest, FindContractResponse};
 use crate::server::grpc::interceptors::trace_request;
@@ -58,7 +58,7 @@ impl ContractService for ContractServiceManager {
         let req = request.into_inner();
         info!("Finding contract by asset id :: (id={})", &req.asset_id);
         let asset_id = req.asset_id;
-        let contract = get_contract_by_asset_id(&asset_id, &self.pg_pool)
+        let contract = find_contract_by_asset_id(&asset_id, &self.pg_pool)
             .await
             .map_err(|e| {
                 match e {
@@ -155,8 +155,12 @@ fn process_accepted_currencies(accepted_currencies: Vec<String>) -> Result<HashS
         })
         .unzip();
 
-    let valid_currencies: HashSet<Currency> = valid_currencies.into_iter().filter_map(|x| x).collect();
-    let invalid_currencies: Vec<String> = invalid_currencies.into_iter().filter_map(|x| x).collect();
+    let valid_currencies: HashSet<Currency> = valid_currencies.into_iter()
+        .filter_map(|x| x)
+        .collect();
+    let invalid_currencies: Vec<String> = invalid_currencies.into_iter()
+        .filter_map(|x| x)
+        .collect();
 
     if !invalid_currencies.is_empty() {
         // Log all invalid currencies

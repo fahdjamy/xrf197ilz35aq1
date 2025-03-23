@@ -84,7 +84,6 @@ where
     )
         .fetch_one(pg_pool)
         .await?;
-    dbg!(&row);
 
     Ok(row)
 }

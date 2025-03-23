@@ -1,4 +1,4 @@
-use crate::core::{find_asset_by_id_and_org_id, get_contract_by_asset_id, transfer_asset_query,
+use crate::core::{find_asset_by_id_and_org_id, find_contract_by_asset_id, transfer_asset_query,
                   DatabaseError, OrchestrateError, NFC};
 use sqlx::PgPool;
 use tracing::info;
@@ -27,7 +27,7 @@ pub async fn orchestrate_transfer_asset(org_id: &str,
     }
 
     // 3. get contract information about the asset
-    let _ = get_contract_by_asset_id(&pg_pool, asset_id)
+    let _ = find_contract_by_asset_id(asset_id, &pg_pool)
         .await
         .map_err(|e| match e {
             DatabaseError::NotFound => OrchestrateError::NotFoundError(asset_id.to_string()),
