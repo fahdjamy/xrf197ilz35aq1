@@ -1,8 +1,9 @@
 use crate::constant::REQUEST_ID_KEY;
-use crate::core::{create_contract, find_asset_by_id, Contract, Currency, DatabaseError};
+use crate::core::{create_contract, find_asset_by_id, get_contract_by_asset_id, Contract, Currency, DatabaseError};
 use crate::server::grpc::asset::contract_service_server::ContractService;
-use crate::server::grpc::asset::{CreateContractRequest, CreateContractResponse};
+use crate::server::grpc::asset::{ContractResponse, CreateContractRequest, CreateContractResponse, FindContractRequest, FindContractResponse};
 use crate::server::grpc::interceptors::trace_request;
+use prost_types::Timestamp;
 use rayon::prelude::*;
 use sqlx::PgPool;
 use std::collections::HashSet;
@@ -21,9 +22,60 @@ impl ContractServiceManager {
     }
 }
 
+impl From<Contract> for ContractResponse {
+    fn from(contract: Contract) -> Self {
+        ContractResponse {
+            version: contract.version.to_string(),
+            asset_id: contract.asset_id.to_string(),
+            details: contract.details,
+            summary: contract.summary,
+            min_price: contract.min_price as f32,
+            update_count: contract.update_count as u32,
+            anonymous_buyers: contract.anonymous_buyer_only,
+            last_updated_by: contract.updated_by.to_string(),
+            royalty_receiver: contract.royalty_receiver_id.to_string(),
+            royalty_percentage: contract.royalty_percentage,
+            accepted_currency: contract.accepted_currency.into_iter()
+                .map(|x| x.to_string())
+                .collect(),
+            last_updated: Some(Timestamp {
+                seconds: contract.updated_at.timestamp(),
+                nanos: contract.updated_at.timestamp_subsec_nanos() as i32,
+            }),
+            created_at: Some(Timestamp {
+                seconds: contract.created_at.timestamp(),
+                nanos: contract.created_at.timestamp_subsec_nanos() as i32,
+            }),
+        }
+    }
+}
+
 #[tonic::async_trait]
 impl ContractService for ContractServiceManager {
-    async fn create_contract(&self, request: Request<CreateContractRequest>) -> Result<Response<CreateContractResponse>, Status> {
+    async fn find_contract(&self, request: Request<FindContractRequest>)
+                           -> Result<Response<FindContractResponse>, Status> {
+        trace_request!(request, "find_contract");
+        let req = request.into_inner();
+        info!("Finding contract by asset id :: (id={})", &req.asset_id);
+        let asset_id = req.asset_id;
+        let contract = get_contract_by_asset_id(&asset_id, &self.pg_pool)
+            .await
+            .map_err(|e| {
+                match e {
+                    DatabaseError::NotFound => Status::not_found("invalid asset id"),
+                    _ => Status::internal(e.to_string()),
+                }
+            })?;
+
+        let response = FindContractResponse {
+            contract: Some(contract.into()),
+        };
+
+        Ok(Response::new(response))
+    }
+
+    async fn create_contract(&self, request: Request<CreateContractRequest>)
+                             -> Result<Response<CreateContractResponse>, Status> {
         trace_request!(request, "create_contract");
         let req = request.into_inner();
         info!("creating new contract :: (assetId={})", &req.asset_id);

@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package proto.contract.v1;
 
+import "google/protobuf/timestamp.proto";
+
 message CreateContractRequest {
   string asset_id = 1;
   string summary = 2;
@@ -14,11 +16,38 @@ message CreateContractRequest {
   repeated string accepted_currencies = 9;
 }
 
+message ContractResponse {
+  string version = 1;
+  string asset_id = 2;
+  string details = 3;
+  string summary = 4;
+  float min_price = 5;
+  uint32 update_count = 6;
+  bool anonymous_buyers = 7;
+  string royalty_receiver = 8;
+  string last_updated_by = 9;
+  float royalty_percentage = 10;
+  repeated string accepted_currency = 11;
+  google.protobuf.Timestamp created_at = 12;
+  google.protobuf.Timestamp last_updated = 13;
+}
+
 message CreateContractResponse {
   string contract_id = 1;
 }
 
+///// Find contract by asset id
+
+message FindContractRequest {
+  string asset_id = 1;
+}
+
+message FindContractResponse {
+  ContractResponse contract = 1;
+}
+
 
 service ContractService {
+  rpc FindContract(FindContractRequest) returns (FindContractResponse);
   rpc CreateContract(CreateContractRequest) returns (CreateContractResponse);
 }
