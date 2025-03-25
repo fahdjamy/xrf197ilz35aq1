@@ -1,5 +1,4 @@
-use crate::core::{find_asset_by_id_and_org_id, find_contract_by_asset_id, transfer_asset_query,
-                  DatabaseError, OrchestrateError, NFC};
+use crate::core::{queries, DatabaseError, OrchestrateError, NFC};
 use sqlx::PgPool;
 use tracing::info;
 
@@ -14,7 +13,7 @@ pub async fn orchestrate_transfer_asset(org_id: &str,
                                         -> Result<NFC, OrchestrateError> {
     info!("starting asset transfer :: asset_id={}", asset_id);
     // 1. Get asset information
-    let asset = find_asset_by_id_and_org_id(&asset_id, &org_id, &pg_pool)
+    let asset = queries::find_asset_by_id_and_org_id(&asset_id, &org_id, &pg_pool)
         .await
         .map_err(|e| match e {
             DatabaseError::NotFound => OrchestrateError::NotFoundError("asset not found in specified org".to_string()),
@@ -27,7 +26,7 @@ pub async fn orchestrate_transfer_asset(org_id: &str,
     }
 
     // 3. get contract information about the asset
-    let _ = find_contract_by_asset_id(asset_id, &pg_pool)
+    let _ = queries::find_contract_by_asset_id(asset_id, &pg_pool)
         .await
         .map_err(|e| match e {
             DatabaseError::NotFound => OrchestrateError::NotFoundError(asset_id.to_string()),
@@ -35,7 +34,7 @@ pub async fn orchestrate_transfer_asset(org_id: &str,
         })?;
 
     // 4. Transfer asset and get NFC for asset back
-    let nfc = transfer_asset_query(new_org_id, asset_id, new_asset_owner, &pg_pool)
+    let nfc = queries::transfer_asset_query(new_org_id, asset_id, new_asset_owner, &pg_pool)
         .await
         .map_err(|e| match e {
             DatabaseError::NotFound => OrchestrateError::NotFoundError(asset_id.to_string()),

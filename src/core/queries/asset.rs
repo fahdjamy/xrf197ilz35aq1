@@ -1,5 +1,5 @@
-use crate::core::{create_nfc, create_nfc_trail, get_nfc_by_asset_id,
-                  Asset, DatabaseError, NFCTrail, OrderType, UpdateAssetRequest, NFC};
+use crate::core::queries::{create_nfc_trail, get_nfc_by_asset_id, OrderType};
+use crate::core::{queries, Asset, DatabaseError, NFCTrail, UpdateAssetRequest, NFC};
 use anyhow::anyhow;
 use chrono::Utc;
 use sqlx::{PgPool, QueryBuilder};
@@ -52,7 +52,7 @@ pub async fn create_new_asset(
         return Ok(false);
     }
 
-    create_nfc(transaction, nf_cert, user_fp)
+    queries::create_nfc(transaction, nf_cert, user_fp)
         .await
         .map_err(|e| {
             error!("Error creating NFC table: {:?}", e);
@@ -138,7 +138,7 @@ pub async fn get_all_assets(
                 .fetch_all(pg_pool)
                 .await?
         }
-        OrderType::Desc => {
+        queries::OrderType::Desc => {
             sqlx::query_as!(
                 Asset,
                 r#"
@@ -271,7 +271,7 @@ pub async fn find_assets_name_like(
     name: &str,
     offset: i64,
     limit: usize,
-    order_by: OrderType,
+    order_by: queries::OrderType,
     pg_pool: &PgPool,
 ) -> Result<Vec<Asset>, DatabaseError> {
     let search_term = format!("%{}%", sanitize_search_term(name));

@@ -38,7 +38,7 @@ impl Display for OrderType {
 
 impl From<String> for OrderType {
     fn from(s: String) -> Self {
-        crate::core::OrderType::from_str(&s).unwrap_or_else(|e| {
+        OrderType::from_str(&s).unwrap_or_else(|e| {
             warn!("invalid order type {} defaulting to: {}", e, OrderType::Asc);
             OrderType::Asc
         })

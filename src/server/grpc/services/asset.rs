@@ -1,5 +1,5 @@
 use crate::constant::REQUEST_ID_KEY;
-use crate::core::{create_new_asset, delete_asset_by_id, find_asset_by_id, find_asset_by_id_and_org_id, find_assets_name_like, get_all_assets, orchestrate_transfer_asset, update_asset, Asset, DatabaseError, DomainError, OrchestrateError, OrderType, UpdateAssetRequest};
+use crate::core::{orchestrate_transfer_asset, queries, Asset, DatabaseError, DomainError, OrchestrateError, UpdateAssetRequest};
 use crate::server::grpc::asset::asset_service_server::AssetService;
 use crate::server::grpc::asset::{Asset as GrpcAsset, CreateRequest, CreateResponse,
                                  DeleteAssetRequest, DeleteAssetResponse,
@@ -107,7 +107,7 @@ impl AssetService for AssetServiceManager {
                 DomainError::InvalidArgument(err) => Status::invalid_argument(err.to_string()),
                 DomainError::ValidationError(err) => Status::invalid_argument(err.to_string()),
             })?;
-        let asset_create_resp = create_new_asset(&asset, user_fp, &self.pg_pool).await;
+        let asset_create_resp = queries::create_new_asset(&asset, user_fp, &self.pg_pool).await;
         if let Err(err) = asset_create_resp {
             return Err(Status::internal(err.to_string()));
         }
@@ -137,7 +137,7 @@ impl AssetService for AssetServiceManager {
             return Err(Status::invalid_argument("At least one updatable field is required"));
         }
 
-        let response = match update_asset(&asset_id, &user_fp, &updated_asset_req, &self.pg_pool).await {
+        let response = match queries::update_asset(&asset_id, &user_fp, &updated_asset_req, &self.pg_pool).await {
             Ok(updated) => updated,
             Err(e) => {
                 return match e {
@@ -165,14 +165,14 @@ impl AssetService for AssetServiceManager {
         let org_id = req.org_id;
         let asset_id = req.asset_id;
 
-        let asset = find_asset_by_id_and_org_id(&asset_id, &org_id, &self.pg_pool)
+        let asset = queries::find_asset_by_id_and_org_id(&asset_id, &org_id, &self.pg_pool)
             .await
             .map_err(|e| match e {
                 DatabaseError::NotFound => Status::not_found("invalid org id or asset id"),
                 _ => Status::unknown("server error"),
             })?;
 
-        let asset_deleted = delete_asset_by_id(&asset.id, &self.pg_pool)
+        let asset_deleted = queries::delete_asset_by_id(&asset.id, &self.pg_pool)
             .await
             .map_err(|e| match e {
                 DatabaseError::NotFound => Status::not_found("invalid org id or asset id"),
@@ -190,7 +190,7 @@ impl AssetService for AssetServiceManager {
         let req = request.into_inner();
         info!("get asset by id :: id={}", &req.asset_id);
         let asset_id = req.asset_id;
-        let asset = find_asset_by_id(&asset_id, &self.pg_pool)
+        let asset = queries::find_asset_by_id(&asset_id, &self.pg_pool)
             .await
             .map_err(|e| match e {
                 DatabaseError::NotFound => Status::not_found("asset not found"),
@@ -229,7 +229,7 @@ impl AssetService for AssetServiceManager {
         trace_request!(request, "get_assets_name_like");
         let req = request.into_inner();
         info!("get assets name-like :: name={}", &req.name);
-        let assets = find_assets_name_like(&req.name, req.offset as i64, req.limit as usize, OrderType::Asc, &self.pg_pool)
+        let assets = queries::find_assets_name_like(&req.name, req.offset as i64, req.limit as usize, queries::OrderType::Asc, &self.pg_pool)
             .await
             .map_err(|e| match e {
                 DatabaseError::NotFound => Status::not_found("No assets found"),
@@ -358,9 +358,9 @@ fn validate_request_parameters(start: i32, limit: i32) -> Result<(), Status> {
 }
 
 async fn fetch_assets(pg_pool: &PgPool, start: i64, limit: i16, sort_order: &str) -> Result<Vec<Asset>, Status> {
-    let order_type = OrderType::from_str(sort_order)
+    let order_type = queries::OrderType::from_str(sort_order)
         .map_err(|_| Status::invalid_argument("sort_order is invalid"))?;
-    get_all_assets(pg_pool, start, limit as i64, order_type)
+    queries::get_all_assets(pg_pool, start, limit as i64, order_type)
         .await
         .map_err(|e| {
             match e {

@@ -1,5 +1,5 @@
 use crate::constant::REQUEST_ID_KEY;
-use crate::core::{create_contract, find_asset_by_id, find_contract_by_asset_id, Contract, Currency, DatabaseError};
+use crate::core::{queries, Contract, Currency, DatabaseError};
 use crate::server::grpc::asset::contract_service_server::ContractService;
 use crate::server::grpc::asset::{ContractResponse, CreateContractRequest, CreateContractResponse, FindContractRequest, FindContractResponse};
 use crate::server::grpc::interceptors::trace_request;
@@ -58,7 +58,7 @@ impl ContractService for ContractServiceManager {
         let req = request.into_inner();
         info!("Finding contract by asset id :: (id={})", &req.asset_id);
         let asset_id = req.asset_id;
-        let contract = find_contract_by_asset_id(&asset_id, &self.pg_pool)
+        let contract = queries::find_contract_by_asset_id(&asset_id, &self.pg_pool)
             .await
             .map_err(|e| {
                 match e {
@@ -80,7 +80,7 @@ impl ContractService for ContractServiceManager {
         let req = request.into_inner();
         info!("creating new contract :: (assetId={})", &req.asset_id);
 
-        let saved_asset = find_asset_by_id(&req.asset_id, &self.pg_pool).await
+        let saved_asset = queries::find_asset_by_id(&req.asset_id, &self.pg_pool).await
             .map_err(|err| match err {
                 DatabaseError::NotFound => {
                     error!(?req.asset_id, " asset not found");
@@ -124,7 +124,7 @@ impl ContractService for ContractServiceManager {
             .map_err(|err| Status::invalid_argument(err.to_string()))?;
         let contract_id = contract.id.clone();
 
-        let contract_created = create_contract(&self.pg_pool, contract).await.map_err(|err| match err {
+        let contract_created = queries::create_contract(&self.pg_pool, contract).await.map_err(|err| match err {
             DatabaseError::InvalidArgument(err) => {
                 Status::invalid_argument(err.to_string())
             },

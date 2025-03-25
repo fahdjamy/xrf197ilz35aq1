@@ -1,4 +1,5 @@
-use crate::core::{DatabaseError, NFCTrail, PgTransaction, NFC};
+use crate::core::queries::PgTransaction;
+use crate::core::{DatabaseError, NFCTrail, NFC};
 use sqlx::{Executor, PgPool, Postgres};
 use tracing::{debug, info};
 
