@@ -19,22 +19,26 @@ pub async fn create_new_asset(
             id,
             name,
             symbol,
+            owner_fp,
             description,
             organization,
             created_at,
             updated_at,
-            updated_by
+            updated_by,
+            listable
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         ",
         asset.id,
         asset.name,
         asset.symbol,
+        asset.owner_fp,
         asset.description,
         asset.organization,
         asset.created_at,
         asset.updated_at,
         asset.updated_by,
+        asset.listable,
     )
         .execute(&mut *transaction)
         .await
@@ -65,7 +69,8 @@ pub async fn find_asset_by_id(asset_id: &str, pg_pool: &PgPool) -> Result<Asset,
         Asset,
         r#"
         SELECT
-            id, name, symbol, description, organization, created_at, updated_at, tradable, listable, updated_by
+            id, name, symbol, description, organization, created_at, updated_at, tradable, listable,
+            updated_by, owner_fp
         FROM asset
         WHERE id = $1"#,
         asset_id
@@ -85,7 +90,8 @@ pub async fn find_asset_by_id_and_org_id(
         Asset,
         r#"
         SELECT
-            id, name, symbol, description, organization, created_at, updated_at, tradable, listable, updated_by
+            id, name, symbol, description, organization, created_at, updated_at, tradable, listable,
+            updated_by, owner_fp
         FROM asset
         WHERE id = $1 AND organization = $2"#,
         asset_id,
@@ -120,7 +126,8 @@ pub async fn get_all_assets(
                 Asset,
                 r#"
                 SELECT
-                    id, name, symbol, description, organization, created_at, updated_at, tradable, listable, updated_by
+                    id, name, symbol, description, organization, created_at, updated_at, tradable,
+                    listable, updated_by, owner_fp
                 FROM asset
                 ORDER BY name
                 LIMIT $1 OFFSET $2
@@ -136,7 +143,8 @@ pub async fn get_all_assets(
                 Asset,
                 r#"
                 SELECT
-                    id, name, symbol, description, organization, created_at, updated_at, tradable, listable, updated_by
+                    id, name, symbol, description, organization, created_at, updated_at, tradable,
+                    listable, updated_by, owner_fp
                 FROM asset
                 ORDER BY name DESC
                 LIMIT $1 OFFSET $2
@@ -151,7 +159,7 @@ pub async fn get_all_assets(
     Ok(result)
 }
 
-#[tracing::instrument(level = "debug", skip(pg_pool, limit, order_by))]
+#[tracing::instrument(level = "debug", skip(pg_pool, limit, offset, symbol, order_by))]
 pub async fn find_assets_symbol_like(
     symbol: &str,
     limit: i16,
@@ -171,7 +179,8 @@ pub async fn find_assets_symbol_like(
                 Asset,
                 r#"
                 SELECT
-                    id, name, symbol, description, organization, created_at, updated_at, tradable, listable, updated_by
+                    id, name, symbol, description, organization, created_at, updated_at, tradable,
+                    listable, updated_by, owner_fp
                 FROM asset
                 WHERE symbol LIKE $1
                 ORDER BY symbol
@@ -189,7 +198,8 @@ pub async fn find_assets_symbol_like(
                 Asset,
                 r#"
                 SELECT
-                    id, name, symbol, description, organization, created_at, updated_at, tradable, listable, updated_by
+                    id, name, symbol, description, organization, created_at, updated_at, tradable,
+                    listable, updated_by, owner_fp
                 FROM asset
                 WHERE symbol LIKE $1
                 ORDER BY symbol DESC
@@ -201,6 +211,58 @@ pub async fn find_assets_symbol_like(
                 .await?
         }
     };
+    Ok(result)
+}
+
+#[tracing::instrument(level = "debug", skip(pg_pool, owner_fp, offset, limit, order_by))]
+pub async fn find_assets_by_owner(owner_fp: &str,
+                                  limit: i16,
+                                  offset: i64,
+                                  listable: bool,
+                                  order_by: OrderType, pg_pool: &PgPool) -> Result<Vec<Asset>, DatabaseError> {
+    let search_term = format!("%{}%", sanitize_search_term(owner_fp).to_uppercase());
+    tracing::debug!("fetching assets from DB :: symbol = {}", &search_term);
+    let result = match order_by {
+        OrderType::Asc => {
+            sqlx::query_as!(
+                Asset,
+                r#"
+                SELECT
+                    id, name, symbol, description, organization, created_at, updated_at, tradable, listable, updated_by, owner_fp
+                FROM asset
+                WHERE owner_fp = $1 AND listable = $2
+                ORDER BY symbol
+                LIMIT $3
+                OFFSET $4"#,
+                owner_fp,
+                listable,
+                limit as i64,
+                offset
+            )
+                .fetch_all(pg_pool)
+                .await?
+        }
+        OrderType::Desc => {
+            sqlx::query_as!(
+                Asset,
+                r#"
+                SELECT
+                    id, name, symbol, description, organization, created_at, updated_at, tradable, listable, updated_by, owner_fp
+                FROM asset
+                WHERE owner_fp = $1 AND listable = $2
+                ORDER BY symbol DESC
+                LIMIT $3
+                OFFSET $4"#,
+                search_term,
+                listable,
+                limit as i64,
+                offset as i64,
+            )
+                .fetch_all(pg_pool)
+                .await?
+        }
+    };
+
     Ok(result)
 }
 
@@ -224,7 +286,8 @@ pub async fn find_assets_name_like(
                 Asset,
                 r#"
                 SELECT
-                    id, name, symbol, description, organization, created_at, updated_at, tradable, listable, updated_by
+                    id, name, symbol, description, organization, created_at, updated_at, tradable,
+                    listable, updated_by, owner_fp
                 FROM asset
                 WHERE name LIKE $1
                 ORDER BY name
@@ -240,7 +303,8 @@ pub async fn find_assets_name_like(
                 Asset,
                 r#"
                 SELECT
-                    id, name, symbol, description, organization, created_at, updated_at, tradable, listable, updated_by
+                    id, name, symbol, description, organization, created_at, updated_at, tradable, listable, updated_by,
+                    owner_fp
                 FROM asset
                 WHERE name LIKE $1
                 ORDER BY name DESC

@@ -11,6 +11,7 @@ pub struct Asset {
     pub symbol: String,
     pub tradable: bool,
     pub listable: bool, // defines if an asset should be listed in a list of assets, may or may not be tradable
+    pub owner_fp: String,
     pub updated_by: String,
     pub description: String,
     pub organization: String,
@@ -22,7 +23,7 @@ impl Asset {
     pub fn new(
         name: String,
         symbol: String,
-        updated_by: String,
+        owner_fp: String,
         description: String,
         organization: String,
     ) -> Result<Self, DomainError> {
@@ -33,7 +34,6 @@ impl Asset {
         let asset_id = generate_unique_key(DOMAIN_KEY_SIZE);
         Ok(Self {
             name,
-            updated_by,
             description,
             organization,
             id: asset_id,
@@ -41,6 +41,8 @@ impl Asset {
             tradable: false,
             created_at: now,
             updated_at: now,
+            owner_fp: owner_fp.clone(),
+            updated_by: owner_fp.clone(),
             symbol: symbol.to_uppercase(),
         })
     }
