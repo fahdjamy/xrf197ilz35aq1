@@ -5,12 +5,12 @@ use tracing::info;
 /// Transferring an asset should only happen if
 /// 1. It is being transferred from one user in the same org to another
 /// 2. If it is being transferred from one org to another.
-pub async fn orchestrate_transfer_asset(org_id: &str,
-                                        asset_id: &str,
-                                        new_org_id: &str,
-                                        new_asset_owner: &str,
-                                        pg_pool: &PgPool)
-                                        -> Result<NFC, OrchestrateError> {
+pub async fn transfer_asset(org_id: &str,
+                            asset_id: &str,
+                            new_org_id: &str,
+                            new_asset_owner: &str,
+                            pg_pool: &PgPool)
+                            -> Result<NFC, OrchestrateError> {
     info!("starting asset transfer :: asset_id={}", asset_id);
     // 1. Get asset information
     let asset = queries::find_asset_by_id_and_org_id(&asset_id, &org_id, &pg_pool)

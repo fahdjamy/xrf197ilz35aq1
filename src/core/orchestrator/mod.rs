@@ -1,3 +1,3 @@
 mod asset;
 
-pub use asset::orchestrate_transfer_asset;
+pub use asset::transfer_asset;

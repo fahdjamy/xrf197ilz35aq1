@@ -1,5 +1,5 @@
 use crate::constant::REQUEST_ID_KEY;
-use crate::core::{orchestrate_transfer_asset, queries, Asset, DatabaseError, DomainError, OrchestrateError, UpdateAssetRequest};
+use crate::core::{orchestrator, queries, Asset, DatabaseError, DomainError, OrchestrateError, UpdateAssetRequest};
 use crate::server::grpc::asset::asset_service_server::AssetService;
 use crate::server::grpc::asset::{Asset as GrpcAsset, CreateRequest, CreateResponse,
                                  DeleteAssetRequest, DeleteAssetResponse,
@@ -212,8 +212,8 @@ impl AssetService for AssetServiceManager {
         let asset_id = req.asset_id;
         let new_owner_id = req.new_owner_fp;
         let new_org_owner = req.new_owner_org_id;
-        let nfc = orchestrate_transfer_asset(&org_id, &asset_id, &new_org_owner,
-                                             &new_owner_id, &self.pg_pool)
+        let nfc = orchestrator::transfer_asset(&org_id, &asset_id, &new_org_owner,
+                                               &new_owner_id, &self.pg_pool)
             .await
             .map_err(|e| match e {
                 OrchestrateError::NotFoundError(err) => Status::not_found(err),
