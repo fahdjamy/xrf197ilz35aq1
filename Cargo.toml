@@ -25,7 +25,7 @@ serde = { version = "1.0.204", features = ["derive"] }
 # serde-aux is used to specify a custom deserialization function for things like string to u16
 serde-aux = "4.5.0"
 
-tonic = { version = "0.12.3", features = ["tls"] }
+tonic = { version = "0.13.0", features = ["tls-native-roots"] }
 prost = "0.13.3"
 prost-types = "0.13.4"
 
@@ -56,4 +56,4 @@ features = [
 ]
 
 [build-dependencies]
-tonic-build = "0.12.3"
+tonic-build = "0.13.0"

@@ -68,7 +68,7 @@ impl GrpcServer {
         // Stack of middleware that the service will be wrapped in
         let tower_layers = ServiceBuilder::new()
             // Apply request-id interceptor
-            .layer(tonic::service::interceptor(Self::request_id_interceptor))
+            .layer(tonic::service::InterceptorLayer::new(Self::request_id_interceptor))
             .into_inner();
 
         info!("starting... gRPC server :: loaded certificate and private key");
