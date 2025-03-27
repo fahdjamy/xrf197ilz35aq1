@@ -76,3 +76,29 @@ async fn test_find_asset_by_owner_fp_success() {
     // 6. Cleanup
     app.drop_db().await;
 }
+
+#[tokio::test]
+async fn test_find_assets_name_like_success() {
+    let app = start_test_app().await;
+
+    // 2. Check that user has no assets
+    let user_fp = app.user_fp.clone();
+
+    // 3. Set up test data
+    let asset = create_asset(user_fp.clone()).expect("Failed to create asset object");
+    // 4. Create asset in db
+    queries::create_new_asset(&asset, user_fp.clone(), &app.db_pool).await
+        .expect("Failed to create asset object");
+    dbg!(asset.name.clone()[..5].to_string());
+
+    let assets = queries::find_assets_name_like(&asset.name.clone()[..4],
+                                                2,
+                                                0, OrderType::Asc, &app.db_pool)
+        .await;
+
+    assert!(assets.is_ok());
+    assert_eq!(assets.unwrap().len(), 1);
+
+    // 6. Cleanup
+    app.drop_db().await;
+}
