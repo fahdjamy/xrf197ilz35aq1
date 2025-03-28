@@ -89,11 +89,14 @@ async fn test_find_assets_name_like_success() {
     // 4. Create asset in db
     queries::create_new_asset(&asset, user_fp.clone(), &app.db_pool).await
         .expect("Failed to create asset object");
-    dbg!(asset.name.clone()[..5].to_string());
 
-    let assets = queries::find_assets_name_like(&asset.name.clone()[..4],
-                                                2,
-                                                0, OrderType::Asc, &app.db_pool)
+    let asset_name = asset.name.clone();
+    let offset = 0;
+    let limit = 8;
+    let assets = queries::find_assets_name_like(&asset_name[..5],
+                                                offset,
+                                                limit,
+                                                OrderType::Asc, &app.db_pool)
         .await;
 
     assert!(assets.is_ok());

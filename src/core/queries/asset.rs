@@ -182,7 +182,7 @@ pub async fn find_assets_symbol_like(
                     id, name, symbol, description, organization, created_at, updated_at, tradable,
                     listable, updated_by, owner_fp
                 FROM asset
-                WHERE symbol LIKE $1
+                WHERE symbol ILIKE $1
                 ORDER BY symbol
                 LIMIT $2
                 OFFSET $3"#,
@@ -201,7 +201,7 @@ pub async fn find_assets_symbol_like(
                     id, name, symbol, description, organization, created_at, updated_at, tradable,
                     listable, updated_by, owner_fp
                 FROM asset
-                WHERE symbol LIKE $1
+                WHERE symbol ILIKE $1
                 ORDER BY symbol DESC
                 LIMIT $2"#,
                 search_term,
@@ -289,7 +289,7 @@ pub async fn find_assets_name_like(
                     id, name, symbol, description, organization, created_at, updated_at, tradable,
                     listable, updated_by, owner_fp
                 FROM asset
-                WHERE name LIKE $1
+                WHERE name ILIKE $1
                 ORDER BY name
                 LIMIT $2
                 OFFSET $3"#,
@@ -306,7 +306,7 @@ pub async fn find_assets_name_like(
                     id, name, symbol, description, organization, created_at, updated_at, tradable, listable, updated_by,
                     owner_fp
                 FROM asset
-                WHERE name LIKE $1
+                WHERE name ILIKE $1
                 ORDER BY name DESC
                 LIMIT $2
                 OFFSET $3"#,
