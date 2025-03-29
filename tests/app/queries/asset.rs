@@ -79,6 +79,7 @@ async fn test_find_asset_by_owner_fp_success() {
 
 #[tokio::test]
 async fn test_find_assets_name_like_success() {
+    // 1. Start app
     let app = start_test_app().await;
 
     // 2. Check that user has no assets
@@ -86,6 +87,7 @@ async fn test_find_assets_name_like_success() {
 
     // 3. Set up test data
     let asset = create_asset(user_fp.clone()).expect("Failed to create asset object");
+
     // 4. Create asset in db
     queries::create_new_asset(&asset, user_fp.clone(), &app.db_pool).await
         .expect("Failed to create asset object");
@@ -99,6 +101,36 @@ async fn test_find_assets_name_like_success() {
                                                 OrderType::Asc, &app.db_pool)
         .await;
 
+    // 5. Assert
+    assert!(assets.is_ok());
+    assert_eq!(assets.unwrap().len(), 1);
+
+    // 6. Cleanup
+    app.drop_db().await;
+}
+
+#[tokio::test]
+async fn test_find_assets_symbol_like_success() {
+    // 1. Start app
+    let app = start_test_app().await;
+
+    // 2. Check that user has no assets
+    let user_fp = app.user_fp.clone();
+
+    // 3. Set up test data
+    let asset = create_asset(user_fp.clone()).expect("Failed to create asset object");
+    // 4. Create asset in db
+    queries::create_new_asset(&asset, user_fp.clone(), &app.db_pool).await
+        .expect("Failed to create asset object");
+
+    let symbol = asset.symbol.clone();
+    let offset = 0;
+    let limit = 8;
+
+    let assets = queries::find_assets_symbol_like(&symbol[..3],
+                                                  limit, offset, OrderType::Desc, &app.db_pool).await;
+
+    // 5. Assert
     assert!(assets.is_ok());
     assert_eq!(assets.unwrap().len(), 1);
 
