@@ -1,46 +1,47 @@
 use crate::helpers::start_test_app;
+use crate::queries::suit::{run_test_async, TestError};
 use crate::seed::create_asset;
+use anyhow::Context;
 use xrf1::core::queries;
 use xrf1::core::queries::OrderType;
 
 #[tokio::test]
 async fn test_create_asset() {
-    // 1. Start app
-    let app = start_test_app().await;
-    // 2. Set up test data
-    let asset = create_asset(app.user_fp.clone()).expect("Failed to create asset object");
+    run_test_async(|app| async move {
+        // 1. Set up test data
+        let asset = create_asset(app.user_fp.clone())
+            .context("My custom message: Setup failed during asset creation")?;
 
-    // 3. Create asset
-    let result = queries::create_new_asset(&asset, app.user_fp.clone(), &app.db_pool).await;
+        // 2. Create asset
+        let result = queries::create_new_asset(&asset, app.user_fp.clone(), &app.db_pool).await;
 
-    // 4. Assert
-    assert!(result.is_ok());
-    assert_eq!(result.unwrap(), true);
+        // 3. Assert
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), true);
 
-    app.drop_db().await;
+        Ok::<(), TestError>(())
+    }).await;
 }
 
 #[tokio::test]
 async fn test_find_asset_by_id_success() {
-    // 1. Start app
-    let app = start_test_app().await;
+    run_test_async(|app| async move {
+        // 1. Set up test data
+        let asset = create_asset(app.user_fp.clone()).expect("Failed to create asset object");
 
-    // 2. Set up test data
-    let asset = create_asset(app.user_fp.clone()).expect("Failed to create asset object");
+        // 2. Create asset in db
+        queries::create_new_asset(&asset, app.user_fp.clone(), &app.db_pool).await
+            .expect("Failed to create asset object");
 
-    // 3. Create asset in db
-    queries::create_new_asset(&asset, app.user_fp.clone(), &app.db_pool).await
-        .expect("Failed to create asset object");
+        // 3. fetch created asset
+        let result = queries::find_asset_by_id(&asset.id, &app.db_pool).await;
 
-    // 4. fetch created asset
-    let result = queries::find_asset_by_id(&asset.id, &app.db_pool).await;
+        // 4. Assert
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().id, asset.id);
 
-    // 5. Assert
-    assert!(result.is_ok());
-    assert_eq!(result.unwrap().id, asset.id);
-
-    // 6. Cleanup
-    app.drop_db().await;
+        Ok::<(), TestError>(())
+    }).await;
 }
 
 #[tokio::test]
