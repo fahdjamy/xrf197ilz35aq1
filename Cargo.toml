@@ -4,16 +4,16 @@ version = "0.0.0"
 edition = "2021"
 
 [dependencies]
-chrono = "0.4.38"
+chrono = "0.4.40"
 rand = "0.9.0-beta.0"
 actix-web = "4.9.0"
 tokio = { version = "1.0.0", features = ["macros", "rt-multi-thread"] }
 tracing = "0.1.41"
-tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 tracing-appender = "0.2.3"
 tracing-bunyan-formatter = "0.3.10"
-config = "0.15.4"
-anyhow = "1.0.94"
+config = "0.15.11"
+anyhow = "1.0.97"
 secrecy = { version = "0.10.3", features = ["serde"] }
 tower = { version = "0.5.2", features = ["full"] }
 # We need the optional `derive` feature to use `serde`'s procedural macros:
@@ -26,27 +26,27 @@ serde = { version = "1.0.204", features = ["derive"] }
 serde-aux = "4.5.0"
 
 tonic = { version = "0.13.0", features = ["tls-native-roots"] }
-prost = "0.13.3"
+prost = "0.13.5"
 prost-types = "0.13.4"
 
 uuid = { version = "1.11.0", features = ["v4"] }
 async-stream = "0.3.6"
 
-strum_macros = "0.27.0"
-strum = { version = "0.27.0", features = ["derive"] }
+strum_macros = "0.27.1"
+strum = { version = "0.27.1", features = ["derive"] }
 rayon = "1.10.0"
 lazy_static = "1.5.0"
 ring = "0.17.8"
 hex = "0.4.3"
 sha2 = "0.10.8"
 base64 = "0.22.1"
-getrandom = "0.3.1"
+getrandom = "0.3.2"
 bytes = "1.8.0"
 thiserror = "2.0.12"
 futures = "0.3.31"
 
 [dependencies.sqlx]
-version = "0.8.2"
+version = "0.8.3"
 default-features = false
 features = [
     "runtime-tokio-rustls", # tells sqlx to use the tokio runtime for its futures and rustls as TLS backend
