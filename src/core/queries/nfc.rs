@@ -98,6 +98,7 @@ pub async fn create_nfc_trail(
         "Creating nfc trail :: nfc_id={} :: created_on={}",
         &trail.nfc_id, trail.transferred_on
     );
+    dbg!(&trail);
     let result = sqlx::query!(
         r#"
         INSERT INTO nfc_asset_trail (nfc_id, user_fp, asset_id, transferred_on)

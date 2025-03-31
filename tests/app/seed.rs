@@ -22,3 +22,11 @@ pub fn create_asset(owner_fp: String) -> Result<Asset, DomainError> {
 
     Asset::new(asset_name, symbol, owner_fp, description, org_id)
 }
+
+pub fn create_asset_owner() -> String {
+    Uuid::new_v4().to_string().to_string()
+}
+
+pub fn create_org_id() -> String {
+    Uuid::new_v4().to_string().to_string()
+}

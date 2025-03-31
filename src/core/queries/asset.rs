@@ -345,25 +345,24 @@ pub async fn transfer_asset_query(new_org: &str,
     let mut transaction = pg_pool.begin().await?;
     let result = sqlx::query!(r#"
     UPDATE asset
-    SET organization = $1, updated_by = $2 WHERE id = $3
+    SET organization = $1, updated_by = $2, owner_fp = $2 WHERE id = $3
 "#,
         new_org, new_owner_fp, asset_id,
     )
         .execute(&mut *transaction)
         .await?;
 
-    let nfc_trail = NFCTrail::new(nfc.id.clone(), new_org.to_string(), new_owner_fp.to_string());
-
-    let trail_created = create_nfc_trail(&mut transaction, &nfc_trail).await?;
-
-    if trail_created {
-        transaction.rollback().await?;
-        return Err(DatabaseError::TransactionStepError("failed to create NFC trail and rolled back".to_string()));
-    }
-
     if result.rows_affected() != 1 {
         transaction.rollback().await?;
         return Err(DatabaseError::TransactionStepError("Failed to transfer asset and rolled back".to_string()));
+    }
+
+    let nfc_trail = NFCTrail::new(nfc.id.clone(), new_owner_fp.to_string(), asset_id.to_string());
+    let trail_created = create_nfc_trail(&mut transaction, &nfc_trail).await?;
+
+    if !trail_created {
+        transaction.rollback().await?;
+        return Err(DatabaseError::TransactionStepError("failed to create NFC trail and rolled back".to_string()));
     }
 
     transaction.commit().await?;

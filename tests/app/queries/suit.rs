@@ -2,6 +2,7 @@ use crate::helpers::{start_test_app, TestApp};
 use futures::FutureExt;
 use std::error::Error;
 use std::fmt;
+use std::fmt::Debug;
 use std::future::Future;
 use std::panic::{self, AssertUnwindSafe};
 

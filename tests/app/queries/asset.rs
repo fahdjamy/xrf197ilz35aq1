@@ -1,9 +1,9 @@
 use crate::helpers::start_test_app;
 use crate::queries::suit::{run_test_async, TestError};
-use crate::seed::create_asset;
+use crate::seed::{create_asset, create_asset_owner, create_org_id};
 use anyhow::Context;
 use xrf1::core::queries;
-use xrf1::core::queries::OrderType;
+use xrf1::core::queries::{create_new_asset, find_asset_by_id, OrderType};
 
 #[tokio::test]
 async fn test_create_asset() {
@@ -137,4 +137,33 @@ async fn test_find_assets_symbol_like_success() {
 
     // 6. Cleanup
     app.drop_db().await;
+}
+
+#[tokio::test]
+async fn test_transfer_assets_success() {
+    run_test_async(|app| async move {
+        let asset = create_asset(app.user_fp.clone())
+            .expect("Failed to create asset object");
+        let new_org_id = create_org_id();
+        let new_asset_owner = create_asset_owner();
+
+        create_new_asset(&asset, new_asset_owner.clone(), &app.db_pool).await
+            .expect("Failed to create asset object");
+
+        let result = queries::transfer_asset_query(&new_org_id, &asset.id, &new_asset_owner, &app.db_pool).await;
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().asset_id, asset.id);
+
+        let asset_transferred = find_asset_by_id(&asset.id, &app.db_pool)
+            .await
+            .expect("Failed to find asset transferred");
+
+        assert_eq!(asset_transferred.id, asset.id);
+        assert_ne!(asset_transferred.owner_fp, app.user_fp);
+        assert_eq!(asset_transferred.organization, new_org_id);
+        assert_eq!(asset_transferred.owner_fp, new_asset_owner);
+
+        Ok::<_, TestError>(())
+    }).await
 }
