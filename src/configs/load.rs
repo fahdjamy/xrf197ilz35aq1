@@ -1,6 +1,7 @@
 use crate::configs::database::DatabaseConfig;
 use crate::constant::XRF_ENV_KEY;
 use crate::Environment;
+use config::{self};
 use serde::Deserialize;
 use serde_aux::field_attributes::deserialize_number_from_string;
 
