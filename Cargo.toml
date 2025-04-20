@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 chrono = "0.4.40"
-rand = "0.9.0"
+rand = "0.9.1"
 actix-web = "4.10.2"
 tokio = { version = "1.44.2", features = ["macros", "rt-multi-thread"] }
 tracing = "0.1.41"
@@ -13,7 +13,7 @@ tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 tracing-appender = "0.2.3"
 tracing-bunyan-formatter = "0.3.10"
 config = "0.15.11"
-anyhow = "1.0.97"
+anyhow = "1.0.98"
 secrecy = { version = "0.10.3", features = ["serde"] }
 tower = { version = "0.5.2", features = ["full"] }
 # We need the optional `derive` feature to use `serde`'s procedural macros:
@@ -46,7 +46,7 @@ thiserror = "2.0.12"
 futures = "0.3.31"
 
 [dependencies.sqlx]
-version = "0.8.3"
+version = "0.8.5"
 default-features = false
 features = [
     "runtime-tokio-rustls", # tells sqlx to use the tokio runtime for its futures and rustls as TLS backend
