@@ -119,7 +119,7 @@ pub async fn get_all_assets(
         &offset,
         &limit
     );
-    // SQLx often requires i64 for LIMIT & OFFSET to ensure compatibility w/ various DB types & potential large values.
+    // SQLx often requires i64 for LIMIT & OFFSET to ensure compatibility w/ various DB types and potential large values.
     let result = match order_by {
         OrderType::Asc => {
             sqlx::query_as!(
@@ -168,7 +168,7 @@ pub async fn find_assets_symbol_like(
     pg_pool: &PgPool,
 ) -> Result<Vec<Asset>, DatabaseError> {
     // TO DO: Look into
-    // 1. Full-text search: Better for complex searches w/ multiple words, phrases, & linguistic considerations
+    // 1. Full-text search: Better for complex searches w/ multiple words, phrases, and linguistic considerations
     // OR
     // 2. Trigram matching: Efficient for finding similar strings, even with typos or partial matches
     let search_term = format!("%{}%", sanitize_search_term(symbol).to_uppercase());

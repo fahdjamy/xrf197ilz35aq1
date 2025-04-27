@@ -56,7 +56,7 @@ pub async fn create_nfc(
         return Ok(false);
     }
 
-    // create new nfc trail history if nfc is created
+    // create a new nfc trail history if nfc is created
     let trail = NFCTrail::new(nf_cert.id, user_fp, nf_cert.asset_id);
     let nfc_trail_created = create_nfc_trail(&mut transaction, &trail).await?;
     if !nfc_trail_created {
@@ -65,7 +65,7 @@ pub async fn create_nfc(
     }
 
     transaction.commit().await?;
-    Ok(true) // Return true, we know both operations succeeded at this point.
+    Ok(true) // Return true; we know both operations succeeded at this point.
 }
 
 #[tracing::instrument(skip(pg_pool, asset_id))]
