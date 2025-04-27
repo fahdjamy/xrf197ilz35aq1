@@ -23,7 +23,7 @@ serde = { version = "1.0.219", features = ["derive"] }
 # environment variables are strings for the config crate,
 # and it will fail to pick up integers if using the standard deserialization routine from serde.
 # serde-aux is used to specify a custom deserialization function for things like string to u16
-serde-aux = "4.6.0"
+serde-aux = "4.7.0"
 
 tonic = { version = "0.13.0", features = ["tls-native-roots"] }
 prost = "0.13.5"
