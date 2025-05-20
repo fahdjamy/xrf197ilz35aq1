@@ -6,8 +6,8 @@ edition = "2021"
 [dependencies]
 chrono = "0.4.41"
 rand = "0.9.1"
-actix-web = "4.10.2"
-tokio = { version = "1.44.2", features = ["macros", "rt-multi-thread"] }
+actix-web = "4.11.0"
+tokio = { version = "1.45.0", features = ["macros", "rt-multi-thread"] }
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 tracing-appender = "0.2.3"
@@ -25,7 +25,7 @@ serde = { version = "1.0.219", features = ["derive"] }
 # serde-aux is used to specify a custom deserialization function for things like string to u16
 serde-aux = "4.7.0"
 
-tonic = { version = "0.13.0", features = ["tls-native-roots"] }
+tonic = { version = "0.13.1", features = ["tls-native-roots"] }
 prost = "0.13.5"
 prost-types = "0.13.5"
 
@@ -40,13 +40,13 @@ ring = "0.17.14"
 hex = "0.4.3"
 sha2 = "0.11.0-pre.5"
 base64 = "0.22.1"
-getrandom = "0.3.2"
+getrandom = "0.3.3"
 bytes = "1.10.1"
 thiserror = "2.0.12"
 futures = "0.3.31"
 
 [dependencies.sqlx]
-version = "0.8.5"
+version = "0.8.6"
 default-features = false
 features = [
     "runtime-tokio-rustls", # tells sqlx to use the tokio runtime for its futures and rustls as TLS backend
@@ -57,4 +57,4 @@ features = [
 ]
 
 [build-dependencies]
-tonic-build = "0.13.0"
+tonic-build = "0.13.1"
