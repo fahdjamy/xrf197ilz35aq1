@@ -56,7 +56,7 @@ impl GrpcServer {
         info!("starting gRPC server :: port {}", &self.addr.port());
         let key_path = &get_path_from_env_or(KEY_PEM_PATH, SSL_PEM_SERVE_KEY_PATH)?;
         let cert_path = &get_path_from_env_or(CERT_PEM_PATH, SSL_PEM_SERVE_CERT_PATH)?;
-        // Load the PEM-encoded data directly. pem (Privacy-Enhanced Mail)
+        // Load the PEM-encoded data directly. Pem (Privacy-Enhanced Mail)
         // .crt (Certificate): This extension is conventionally used for files that contain only
         // certs (usually X.509 certificates). It's still PEM-encoded data, just w/ a more specific file ext
         let cert_pem = load_pem_data(Path::new(cert_path))?;
@@ -64,7 +64,7 @@ impl GrpcServer {
         // private keys. Again, it's still PEM-encoded data
         let key_pem = load_pem_data(Path::new(key_path))?;
 
-        // Tower: Setting up interceptors
+        // Tower: Setting up interceptor
         // Stack of middleware that the service will be wrapped in
         let tower_layers = ServiceBuilder::new()
             // Apply request-id interceptor

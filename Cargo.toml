@@ -26,14 +26,14 @@ serde = { version = "1.0.219", features = ["derive"] }
 serde-aux = "4.7.0"
 
 tonic = { version = "0.13.1", features = ["tls-native-roots"] }
-prost = "0.14.1"
+prost = "0.13.5"
 prost-types = "0.14.1"
 
 uuid = { version = "1.17.0", features = ["v4"] }
 async-stream = "0.3.6"
 
 strum_macros = "0.27.1"
-strum = { version = "0.27.1", features = ["derive"] }
+strum = { version = "0.27.2", features = ["derive"] }
 rayon = "1.10.0"
 lazy_static = "1.5.0"
 ring = "0.17.14"
