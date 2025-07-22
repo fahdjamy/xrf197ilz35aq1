@@ -1,11 +1,11 @@
 [package]
 name = "xrf1"
-version = "1.0.0"
+version = "0.0.1"
 edition = "2021"
 
 [dependencies]
 chrono = "0.4.41"
-rand = "0.9.1"
+rand = "0.9.2"
 actix-web = "4.11.0"
 tokio = { version = "1.46.1", features = ["macros", "rt-multi-thread"] }
 tracing = "0.1.41"
@@ -32,7 +32,7 @@ prost-types = "0.14.1"
 uuid = { version = "1.17.0", features = ["v4"] }
 async-stream = "0.3.6"
 
-strum_macros = "0.27.1"
+strum_macros = "0.27.2"
 strum = { version = "0.27.2", features = ["derive"] }
 rayon = "1.10.0"
 lazy_static = "1.5.0"
