@@ -27,7 +27,7 @@ serde-aux = "4.7.0"
 
 tonic = { version = "0.13.1", features = ["tls-native-roots"] }
 prost = "0.13.5"
-prost-types = "0.14.1"
+prost-types = "0.13.5"
 
 uuid = { version = "1.17.0", features = ["v4"] }
 async-stream = "0.3.6"
