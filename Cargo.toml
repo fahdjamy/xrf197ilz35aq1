@@ -12,8 +12,8 @@ tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 tracing-appender = "0.2.3"
 tracing-bunyan-formatter = "0.3.10"
-config = "0.15.13"
-anyhow = "1.0.98"
+config = "0.15.14"
+anyhow = "1.0.99"
 secrecy = { version = "0.10.3", features = ["serde"] }
 tower = { version = "0.5.2", features = ["full"] }
 # We need the optional `derive` feature to use `serde`'s procedural macros:
@@ -30,7 +30,7 @@ prost = "0.14.1"
 prost-types = "0.14.1"
 tonic-prost = "0.14.1"
 
-uuid = { version = "1.17.0", features = ["v4"] }
+uuid = { version = "1.18.0", features = ["v4"] }
 async-stream = "0.3.6"
 
 strum_macros = "0.27.2"
@@ -43,7 +43,7 @@ sha2 = "0.11.0-rc.0"
 base64 = "0.22.1"
 getrandom = "0.3.3"
 bytes = "1.10.1"
-thiserror = "2.0.12"
+thiserror = "2.0.14"
 futures = "0.3.31"
 
 [dependencies.sqlx]
