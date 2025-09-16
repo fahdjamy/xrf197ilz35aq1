@@ -12,14 +12,14 @@ tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.20", features = ["env-filter"] }
 tracing-appender = "0.2.3"
 tracing-bunyan-formatter = "0.3.10"
-config = "0.15.15"
+config = "0.15.16"
 anyhow = "1.0.99"
 secrecy = { version = "0.10.3", features = ["serde"] }
 tower = { version = "0.5.2", features = ["full"] }
 # We need the optional `derive` feature to use `serde`'s procedural macros:
 # `#[derive(Serialize)]` & `#[derive(Deserialize)]`. The feature is not enabled by default to avoid pulling
 # unnecessary deps for projects that do not need it.
-serde = { version = "1.0.222", features = ["derive"] }
+serde = { version = "1.0.225", features = ["derive"] }
 # environment variables are strings for the config crate,
 # and it will fail to pick up integers if using the standard deserialization routine from serde.
 # serde-aux is used to specify a custom deserialization function for things like string to u16
