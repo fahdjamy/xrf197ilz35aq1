@@ -12,7 +12,7 @@ tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.20", features = ["env-filter"] }
 tracing-appender = "0.2.3"
 tracing-bunyan-formatter = "0.3.10"
-config = "0.15.17"
+config = "0.15.18"
 anyhow = "1.0.100"
 secrecy = { version = "0.10.3", features = ["serde"] }
 tower = { version = "0.5.2", features = ["full"] }
@@ -43,7 +43,7 @@ sha2 = "0.11.0-rc.2"
 base64 = "0.22.1"
 getrandom = "0.3.3"
 bytes = "1.10.1"
-thiserror = "2.0.16"
+thiserror = "2.0.17"
 futures = "0.3.31"
 
 [dependencies.sqlx]
