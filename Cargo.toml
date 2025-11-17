@@ -8,7 +8,7 @@ doctest = false
 [dependencies]
 chrono = "0.4.42"
 rand = "0.10.0-rc.5"
-actix-web = "4.11.0"
+actix-web = "4.12.0"
 tokio = { version = "1.48.0", features = ["macros", "rt-multi-thread"] }
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.20", features = ["env-filter"] }
@@ -44,7 +44,7 @@ hex = "0.4.3"
 sha2 = "0.11.0-rc.3"
 base64 = "0.22.1"
 getrandom = "0.3.4"
-bytes = "1.10.1"
+bytes = "1.11.0"
 thiserror = "2.0.17"
 futures = "0.3.31"
 
