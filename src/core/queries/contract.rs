@@ -56,10 +56,7 @@ impl From<Contract> for DbContract {
             royalty_receiver: contract.royalty_receiver_id,
             anonymous_buyer_only: contract.anonymous_buyer_only,
             royalty_percentage: contract.royalty_percentage as f64,
-            accepted_currency: CurrencyList(contract.accepted_currency
-                .into_iter()
-                .map(|c| c)
-                .collect()), // Convert to Vec<String>
+            accepted_currency: CurrencyList(contract.accepted_currency.into_iter().map(|c| c).collect()), // Convert to Vec<String>
         }
     }
 }
@@ -88,13 +85,20 @@ impl From<DbContractResponse> for Contract {
 
 impl Display for DbContract {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "contractId:{}, assetId:{}, updated_at={}", self.id, self.asset_id, self.updated_at)
+        write!(
+            f,
+            "contractId:{}, assetId:{}, updated_at={}",
+            self.id, self.asset_id, self.updated_at
+        )
     }
 }
 
 #[tracing::instrument(skip(pg_pool, contract))]
 pub async fn create_contract(pg_pool: &PgPool, contract: Contract) -> Result<bool, DatabaseError> {
-    info!("creating contract :: contractId={} :: assetId={}", contract.id, contract.asset_id);
+    info!(
+        "creating contract :: contractId={} :: assetId={}",
+        contract.id, contract.asset_id
+    );
     let contract_asset_exists = check_if_asset_has_contract(pg_pool, &contract.asset_id)
         .await
         .map_err(|err| {
@@ -107,7 +111,8 @@ pub async fn create_contract(pg_pool: &PgPool, contract: Contract) -> Result<boo
 
     let db_contract: DbContract = DbContract::from(contract);
     info!("creating contract :: currencyList={}", db_contract.accepted_currency);
-    let result = sqlx::query!(r#"
+    let result = sqlx::query!(
+        r#"
 INSERT INTO contract (
                       id,
                       content,
@@ -187,10 +192,11 @@ SELECT id,
        updated_at,
        royalty_receiver,
        accepted_currency as "accepted_currency: CurrencyList"
-FROM contract 
+FROM contract
 WHERE asset_id=$1"#,
         asset_id
-    ).fetch_one(pg_pool)
+    )
+        .fetch_one(pg_pool)
         .await?;
     Ok(result.into())
 }

@@ -1,0 +1,11 @@
+#set consistent line withd
+max_width = 120
+
+# Group imports and format them alphabetically
+group_imports = "StdExternalCrate"
+reorder_imports = true
+reorder_modules = true
+
+#Force consistent indentation and alignment
+indent_style = "Block"
+fn_call_width = 80
