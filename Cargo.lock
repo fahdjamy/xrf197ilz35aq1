@@ -1035,6 +1035,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "getrandom"
+version = "0.4.0-rc.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3b99f0d993a2b9b97b9a201193aa8ad21305cde06a3be9a7e1f8f4201e5cc27e"
+dependencies = [
+ "cfg-if",
+ "libc",
+ "r-efi",
+ "wasip2",
+]
+
+[[package]]
 name = "h2"
 version = "0.3.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3705,7 +3717,7 @@ dependencies = [
  "chrono",
  "config",
  "futures",
- "getrandom 0.3.4",
+ "getrandom 0.4.0-rc.0",
  "hex",
  "lazy_static",
  "prost",
